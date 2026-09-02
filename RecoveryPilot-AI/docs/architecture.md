@@ -29,7 +29,7 @@ Domain services (services/)
 | `integrations` | Third-party HTTP clients |
 | `shared` | Cross-cutting types and constants |
 | `simulator` | Synthetic batches and measured-recovery reports |
-| `database` | Alembic migrations and Postgres bootstrap |
+| `database` | SQLAlchemy models, Alembic, Postgres init, seed scaffolding |
 | `docker` | Container images and nginx |
 
 Routers stay thin. Services never call third parties directly; they go through `integrations`.

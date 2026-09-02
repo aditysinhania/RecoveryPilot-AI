@@ -15,10 +15,11 @@ COPY services ./services
 COPY integrations ./integrations
 COPY simulator ./simulator
 COPY shared ./shared
+COPY database ./database
 
 RUN uv sync --no-dev
 
-ENV PYTHONPATH=/repo/apps/backend
+ENV PYTHONPATH=/repo:/repo/apps/backend:/repo/shared/src
 WORKDIR /repo
 EXPOSE 8000
 

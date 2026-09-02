@@ -1,9 +1,5 @@
-"""SQLAlchemy declarative base. Models in `app.models` subclass this."""
+"""SQLAlchemy declarative base. Canonical definition lives in database.models.base."""
 
-from __future__ import annotations
+from database.models.base import Base
 
-from sqlalchemy.orm import DeclarativeBase
-
-
-class Base(DeclarativeBase):
-    """Shared metadata base for all ORM models."""
+__all__ = ["Base"]

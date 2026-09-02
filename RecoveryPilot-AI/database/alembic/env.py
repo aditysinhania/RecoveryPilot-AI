@@ -1,4 +1,4 @@
-"""Alembic migration environment. Models are imported here once they exist."""
+"""Alembic migration environment. Autogenerate reads database.models metadata."""
 
 from __future__ import annotations
 
@@ -11,11 +11,13 @@ from sqlalchemy import engine_from_config, pool
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "apps" / "backend"
-if str(BACKEND) not in sys.path:
-    sys.path.insert(0, str(BACKEND))
+SHARED_SRC = ROOT / "shared" / "src"
+for _path in (ROOT, SHARED_SRC, BACKEND):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 from app.core.config import settings  # noqa: E402
-from app.db.base import Base  # noqa: E402
+from database.models import Base  # noqa: E402  # registers all mapped tables
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -34,6 +36,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -47,7 +51,12 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

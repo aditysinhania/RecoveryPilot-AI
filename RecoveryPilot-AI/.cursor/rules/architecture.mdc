@@ -22,7 +22,7 @@ services/              # all business logic
 integrations/          # external APIs (Razorpay, WhatsApp, LLM, etc.)
 shared/                # cross-cutting types and constants
 simulator/             # batch recovery simulator
-database/              # Alembic + Postgres init
+database/              # models, Alembic, Postgres init, seed scaffolding
 docker/                # Dockerfiles and nginx
 docs/                  # architecture notes
 docker-compose.yml
