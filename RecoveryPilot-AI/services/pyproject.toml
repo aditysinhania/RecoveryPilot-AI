@@ -1,0 +1,23 @@
+[project]
+name = "recoverypilot-services"
+version = "0.1.0"
+description = "RecoveryPilot AI domain services (business logic)"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.10.0",
+    "sqlalchemy>=2.0.36",
+    "recoverypilot-shared",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+recoverypilot-shared = { workspace = true }

@@ -1,0 +1,27 @@
+---
+description: Type hints, docstrings, logging, and JSON API responses
+alwaysApply: true
+---
+
+# Code quality
+
+- Add type hints on all function signatures (args and return).
+- Add a docstring on public functions, services, routers, and integrations.
+- Use `logging.getLogger(__name__)`. Log start, success, and failures with structured context (ids, amounts). Never log secrets, tokens, or full card/VPA data.
+- Return clean JSON: `{"status": "ok"|"error", ...}`. Use HTTP status codes. Error body: `{"status": "error", "code": "...", "message": "..."}`.
+
+```python
+# ❌ BAD
+def run(data):
+    print(data)
+    return data
+
+# ✅ GOOD
+logger = logging.getLogger(__name__)
+
+def run(db: Session, payload: RecoverRequest) -> RecoverResponse:
+    """Execute one bounded recovery attempt for a case."""
+    logger.info("recovery.start", extra={"case_id": payload.case_id})
+    ...
+    return RecoverResponse(status="ok", recovered_paise=amount)
+```

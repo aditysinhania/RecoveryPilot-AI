@@ -1,0 +1,12 @@
+{
+  "name": "recoverypilot-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RecoveryPilot AI — Razorpay AI Revenue Recovery monorepo",
+  "packageManager": "pnpm@11.15.1",
+  "scripts": {
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build:frontend": "pnpm --filter frontend build",
+    "preview:frontend": "pnpm --filter frontend preview"
+  }
+}

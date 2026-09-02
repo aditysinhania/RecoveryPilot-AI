@@ -1,0 +1,51 @@
+name: recoverypilot-ai
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recoverypilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recoverypilot}
+      POSTGRES_DB: ${POSTGRES_DB:-recoverypilot}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recoverypilot} -d ${POSTGRES_DB:-recoverypilot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - .env.example
+    environment:
+      APP_ENV: production
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-recoverypilot}:${POSTGRES_PASSWORD:-recoverypilot}@postgres:5432/${POSTGRES_DB:-recoverypilot}
+      CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

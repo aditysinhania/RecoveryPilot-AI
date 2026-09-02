@@ -1,0 +1,12 @@
+---
+description: React, Vite, TailwindCSS, and TypeScript conventions
+alwaysApply: true
+---
+
+# Frontend stack
+
+- App lives in `apps/frontend`. Package manager is pnpm.
+- React + Vite + TypeScript. TailwindCSS for styling.
+- UI only. Domain recovery rules stay in `services/` on the backend.
+- Use functional components and TypeScript types for API responses.
+- Proxy `/api` to the FastAPI server in Vite config. Do not hardcode production API hosts in components.

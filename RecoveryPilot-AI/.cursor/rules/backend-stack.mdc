@@ -1,0 +1,29 @@
+---
+description: FastAPI, SQLAlchemy, PostgreSQL, and Pydantic conventions
+alwaysApply: true
+---
+
+# Backend stack
+
+- HTTP: FastAPI routers in `apps/backend/app/api/`. Register them in `apps/backend/app/main.py`.
+- ORM: SQLAlchemy models in `apps/backend/app/models/`. No raw SQL unless a query cannot be expressed in the ORM.
+- DB: PostgreSQL only. Sessions via `apps/backend/app/db/`. No SQLite in production paths.
+- Schemas: Pydantic v2 models in `apps/backend/app/schemas/` for every request and response.
+- Business logic: `services/` only. Routers do not contain domain rules.
+- External APIs: `integrations/` only. Services never call third parties directly.
+- Shared types: `shared/` only.
+- Batch eval: `simulator/` only.
+
+Routers return Pydantic models or plain JSON-serializable dicts. No ORM objects in responses.
+
+```python
+# ❌ BAD
+@router.get("/cases/{id}")
+def get_case(id: int, db: Session = Depends(get_db)):
+    return db.get(RecoveryCase, id)  # leaks ORM
+
+# ✅ GOOD
+@router.get("/cases/{case_id}", response_model=CaseResponse)
+def get_case(case_id: int, db: Session = Depends(get_db)) -> CaseResponse:
+    return case_service.get_case(db, case_id)
+```

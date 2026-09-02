@@ -1,0 +1,38 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+pnpm-debug.log*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# Tooling
+.uv/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Docker / data
+docker/data/
+*.log

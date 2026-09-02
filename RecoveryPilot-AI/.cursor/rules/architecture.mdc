@@ -1,0 +1,43 @@
+---
+description: Project architecture, folder layout, and change discipline
+alwaysApply: true
+---
+
+# Architecture
+
+Never rewrite a module that already exists unless the user explicitly asks. Extend it.
+
+Do not add placeholder files, empty stubs, or unused folders.
+
+Keep code modular. One concern per module. Routers stay thin.
+
+This directory is the RecoveryPilot-AI project root. Follow that tree exactly.
+
+## Folder structure (follow exactly)
+
+```
+apps/frontend/         # React + Vite + Tailwind + TypeScript
+apps/backend/          # FastAPI app: main, api, models, schemas, core, db
+services/              # all business logic
+integrations/          # external APIs (Razorpay, WhatsApp, LLM, etc.)
+shared/                # cross-cutting types and constants
+simulator/             # batch recovery simulator
+database/              # Alembic + Postgres init
+docker/                # Dockerfiles and nginx
+docs/                  # architecture notes
+docker-compose.yml
+```
+
+Backend internals live under `apps/backend/app/` (`api/`, `models/`, `schemas/`, `core/`, `db/`). Do not put domain logic there.
+
+```python
+# ❌ BAD — logic in the router, HTTP in the service
+@router.post("/recover")
+def recover(payload: dict):
+    return httpx.post("https://api.razorpay.com/...", json=payload).json()
+
+# ✅ GOOD — router -> services/ -> integrations/
+@router.post("/recover")
+def recover(payload: RecoverRequest, db: Session = Depends(get_db)):
+    return recovery_service.run(db, payload)
+```
