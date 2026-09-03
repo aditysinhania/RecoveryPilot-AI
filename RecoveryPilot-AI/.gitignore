@@ -36,3 +36,6 @@ Thumbs.db
 # Docker / data
 docker/data/
 *.log
+
+# Simulator output
+simulator/output/

@@ -6,6 +6,11 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.10.0",
     "recoverypilot-services",
+    "recoverypilot-shared",
+    "faker>=37.0.0",
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "sqlalchemy>=2.0.36",
 ]
 
 [build-system]
@@ -20,3 +25,4 @@ where = ["src"]
 
 [tool.uv.sources]
 recoverypilot-services = { workspace = true }
+recoverypilot-shared = { workspace = true }
