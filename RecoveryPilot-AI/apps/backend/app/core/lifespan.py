@@ -28,7 +28,7 @@ from app.core.responses import error_response
 from app.db.health import ping_database
 from app.db.session import dispose_engine, get_engine
 from app.utils.json import redact_mapping
-from app.utils.request_id import get_request_id
+from app.utils.request_id import get_correlation_id, get_request_id
 
 logger = get_logger(__name__)
 
@@ -74,7 +74,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def _app_exc(_request: Request, exc: ApplicationException) -> object:
         logger.warning(
             "app.error",
-            extra={"code": exc.code, "status_code": exc.status_code, "request_id": get_request_id()},
+            extra={
+                "code": exc.code,
+                "status_code": exc.status_code,
+                "request_id": get_request_id(),
+                "correlation_id": get_correlation_id(),
+            },
         )
         return error_response(exc.message, exc.code, exc.status_code)
 
@@ -88,7 +93,15 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def _unhandled(_request: Request, exc: Exception) -> object:
-        logger.error("app.unhandled", extra={"error_type": type(exc).__name__}, exc_info=exc)
+        logger.error(
+            "app.unhandled",
+            extra={
+                "error_type": type(exc).__name__,
+                "request_id": get_request_id(),
+                "correlation_id": get_correlation_id(),
+            },
+            exc_info=exc,
+        )
         return error_response("Internal server error", "internal_error", 500)
 
 

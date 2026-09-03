@@ -1,8 +1,9 @@
-# Backend architecture — Phase 4A
+# Backend architecture — Phase 4B
 
-FastAPI foundation for RecoveryPilot AI (Razorpay Hackathon Track 03).
-This phase is **infrastructure only**: no diagnosis, planner, Razorpay calls,
-Gemini, or payment execution.
+FastAPI backend for RecoveryPilot AI (Razorpay Hackathon Track 03).
+Phase 4A delivered the HTTP foundation. Phase 4B adds **read-only merchant
+dashboard APIs** and small infrastructure tightening. There is still **no**
+diagnosis, planner, Razorpay call, Gemini, or payment execution.
 
 Run locally:
 
@@ -20,100 +21,163 @@ OpenAPI: [http://localhost:8000/docs](http://localhost:8000/docs) · ReDoc `/red
 apps/backend/app/
 ├── main.py                 # app = create_app() only
 ├── api/
-│   ├── deps.py             # session, settings, request_id, logger, merchant
+│   ├── deps.py             # session, settings, request_id, correlation_id, logger
 │   └── v1/
 │       ├── router.py       # central /api/v1 registration
-│       ├── health.py
-│       ├── merchants.py    # placeholders
+│       ├── health.py       # /live, /ready, /health, /health/database
+│       ├── merchants.py    # dashboard (thin; no SQL)
 │       ├── recovery.py     # placeholders
 │       ├── audit.py        # placeholders
 │       └── simulator.py    # placeholders
 ├── config/
-│   ├── settings.py         # Pydantic BaseSettings
-│   ├── logging.py          # JSON logger factory
-│   ├── constants.py        # API_PREFIX, timezone, pool, page size
-│   └── environment.py      # startup validation
+│   ├── settings.py         # Pydantic BaseSettings; get_settings() is @lru_cache
+│   ├── logging.py          # JSON logger factory (request_id + correlation_id)
+│   ├── constants.py
+│   └── environment.py
 ├── core/
 │   ├── lifespan.py         # create_app(), lifespan, exception handlers
-│   ├── middleware.py
+│   ├── middleware.py       # TrustedHost → CORS → GZip → IDs → timing → logs
 │   ├── exceptions.py
-│   └── responses.py        # success / error envelopes
-├── db/
-│   ├── session.py          # engine, pool, get_db
-│   ├── base.py
-│   ├── models.py           # re-export of database.models
-│   └── health.py           # SELECT 1
-├── schemas/                # HTTP envelopes; domain schemas stay in shared/
-├── services/               # empty — domain logic stays in repo services/
-└── utils/                  # request_id, time, pagination, uuid, json
+│   └── responses.py        # ApiResponse / PaginatedResponse / ErrorResponse
+├── db/                     # engine, get_db, SELECT 1
+├── schemas/
+│   ├── common.py           # ApiResponse[T], PaginatedResponse[T], ErrorResponse
+│   └── merchant_dashboard.py
+├── services/
+│   └── merchant_service.py # HTTP adapter; maps ORM → Pydantic, 404
+└── utils/
+
+services/src/services/
+└── merchant_service.py     # all merchant dashboard SQLAlchemy queries
 ```
 
-Canonical ORM tables remain in `database/models/`. Routers must not contain
-domain recovery rules (`services/` at the repo root owns those in later phases).
+Canonical ORM tables remain in `database/models/`. Domain queries live in
+`services/`. Routers only parse parameters, call the adapter, and wrap envelopes.
 
 ---
 
-## Request lifecycle
+## API flow
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant RequestID as RequestIdMiddleware
-    participant Timing as TimingMiddleware
-    participant AccessLog as LoggingMiddleware
-    participant CORS as CORSMiddleware
-    participant GZip as GZipMiddleware
-    participant Host as TrustedHostMiddleware
-    participant Router as API v1 router
-    participant Deps as Depends (session, settings)
-    participant Handler as Endpoint
+    participant MW as Middleware stack
+    participant Router as /api/v1/merchants
+    participant Adapter as app.services.merchant_service
+    participant Domain as services.merchant_service
+    participant PG as PostgreSQL
 
-    Client->>RequestID: HTTP request
-    RequestID->>RequestID: UUID / incoming X-Request-ID
-    RequestID->>Timing: call_next
-    Timing->>AccessLog: call_next
-    AccessLog->>CORS: call_next
-    CORS->>GZip: call_next
-    GZip->>Host: call_next
-    Host->>Router: /api/v1/...
-    Router->>Deps: inject session, settings, request_id
-    Deps->>Handler: handler body
-    Handler-->>Client: envelope + X-Request-ID
+    Client->>MW: GET /api/v1/merchants/{id}/summary
+    MW->>MW: TrustedHost, CORS, GZip
+    MW->>MW: request_id + correlation_id
+    MW->>MW: timing + access log
+    MW->>Router: Depends(get_db), logger
+    Router->>Adapter: get_summary(db, merchant_id)
+    Adapter->>Domain: load_summary(db, merchant_id)
+    Domain->>PG: SELECT merchant + COUNT(*) + metrics
+    PG-->>Domain: rows
+    Domain-->>Adapter: MerchantSummaryResult
+    Adapter-->>Router: MerchantSummary (Pydantic)
+    Router-->>Client: ApiResponse + X-Request-ID + X-Correlation-ID
 ```
 
-Every response (success or error) includes `request_id` and `timestamp`.
-The same id is returned as `X-Request-ID`.
+| Route | Service call | Envelope |
+| --- | --- | --- |
+| `GET /api/v1/merchants/{merchant_id}/summary` | `get_summary` | `ApiResponse[MerchantSummary]` |
+| `GET /api/v1/merchants/{merchant_id}/metrics` | `get_metrics` | `ApiResponse[MerchantMetricsPayload]` |
+| `GET /api/v1/merchants/{merchant_id}/payments` | `list_payments` | `PaginatedResponse[PaymentListItem]` |
+| `GET /api/v1/merchants/{merchant_id}/failures` | `list_failures` | `PaginatedResponse[FailureListItem]` |
+
+Payments and failures accept `page` (1-based) and `page_size` (clamped to 100).
+Unknown `merchant_id` returns HTTP 404 `merchant_not_found`.
 
 ---
 
-## Middleware pipeline
-
-Starlette applies middleware in reverse registration order. **Last added is outermost.**
+## Merchant service layer
 
 ```mermaid
 flowchart TB
-    subgraph outer [Outermost]
-        RID[RequestIdMiddleware]
-        TIME[RequestTimingMiddleware]
-        LOG[StructuredLoggingMiddleware]
-    end
-    subgraph starlette [Starlette built-ins]
-        CORS[CORSMiddleware]
-        GZ[GZipMiddleware]
-        TH[TrustedHostMiddleware]
-    end
+    R[merchants.py router]
+    A[app/services/merchant_service.py adapter]
+    D[services/merchant_service.py]
+    M[(merchants)]
+    C[(customers)]
+    S[(subscriptions)]
+    P[(payments)]
+    RC[(recovery_cases)]
+    MM[(merchant_metrics)]
+
+    R -->|"Depends(get_db)"| A
+    A -->|map 404 / Pydantic| D
+    D --> M
+    D --> C
+    D --> S
+    D --> P
+    D --> RC
+    D --> MM
+```
+
+- **`services.merchant_service`**: SQLAlchemy `select` / `func.count` / `db.get`.
+  Raises domain `MerchantNotFoundError`. Returns ORM + counts.
+- **`app.services.merchant_service`**: Catches the domain miss, raises
+  `app.core.exceptions.MerchantNotFoundError` (HTTP 404), builds dashboard DTOs.
+  Metrics with no snapshot row become zeros, not 404.
+- Failures are `payment_status = FAILED`, newest `created_at` first, left-joined
+  to `recovery_cases` for `recovery_status`.
+
+---
+
+## Request → Service → Database
+
+```mermaid
+flowchart LR
+    REQ[HTTP request] --> DEP["Depends(get_db)"]
+    DEP --> SESS[SQLAlchemy Session]
+    REQ --> RT[Thin router]
+    RT --> SVC[merchant_service]
+    SVC --> SESS
+    SESS --> PG[(PostgreSQL)]
+    SVC --> DTO[Pydantic DTO]
+    DTO --> ENV[ApiResponse / PaginatedResponse]
+    ENV --> RES[JSON response]
+```
+
+Routers never return ORM objects. Money stays integer paise.
+
+---
+
+## Request lifecycle (middleware)
+
+Starlette applies middleware in reverse registration order. **Last added is outermost.**
+
+Request flow (outer → inner):
+
+**TrustedHost → CORS → GZip → Request ID → Request Timing → Structured Logging → Exception Handling → route**
+
+```mermaid
+flowchart TB
+    TH[TrustedHostMiddleware]
+    CORS[CORSMiddleware]
+    GZ[GZipMiddleware]
+    RID[RequestIdMiddleware]
+    TIME[RequestTimingMiddleware]
+    LOG[StructuredLoggingMiddleware]
+    EX[Exception handlers]
     APP[Route handlers]
-    RID --> TIME --> LOG --> CORS --> GZ --> TH --> APP
+    TH --> CORS --> GZ --> RID --> TIME --> LOG --> EX --> APP
 ```
 
 | Middleware | Role |
 | --- | --- |
-| Request ID | UUID per request; `X-Request-ID` |
-| Timing | `latency_ms` + `X-Response-Time-Ms` |
-| Structured logging | JSON access log: method, path, status, latency, request_id |
-| CORS | Origins from `CORS_ORIGINS` |
-| GZip | Bodies over 500 bytes |
 | Trusted Host | Hosts from `TRUSTED_HOSTS` |
+| CORS | Origins from `CORS_ORIGINS`; exposes `X-Request-ID` and `X-Correlation-ID` |
+| GZip | Bodies over 500 bytes |
+| Request ID | `request_id` from `X-Request-ID` or a new UUID; `correlation_id` from `X-Correlation-ID` or the same as `request_id` |
+| Timing | `latency_ms` + `X-Response-Time-Ms` |
+| Structured logging | JSON access log: method, path, status, latency, both ids |
+| Exception handling | Standard `ErrorResponse` envelope |
+
+Every success or error body includes `request_id`, `correlation_id`, and `timestamp`.
 
 ---
 
@@ -123,18 +187,17 @@ flowchart TB
 flowchart LR
     EP[Endpoint]
     EP --> RID[request_id_dep]
-    EP --> SET[get_settings]
+    EP --> CID[correlation_id_dep]
+    EP --> SET["get_settings @lru_cache"]
     EP --> DB[get_db]
     EP --> LOG[logger_dep]
     EP --> MER[get_current_merchant]
     DB --> ENG[get_engine]
     ENG --> PG[(PostgreSQL)]
-    RID --> CTX[contextvar request_id]
     MER --> NONE[None until auth]
 ```
 
-`app/api/deps.py` exposes annotated aliases: `SessionDep`, `SettingsDep`,
-`RequestIdDep`, `LoggerDep`, `MerchantDep`.
+`Settings()` is constructed once via `get_settings()` (`@lru_cache(maxsize=1)`).
 
 ---
 
@@ -159,8 +222,7 @@ flowchart TD
 Shutdown disposes the SQLAlchemy pool and logs `app.shutdown`.
 
 Environment must be one of `local`, `development`, `staging`, `production`.
-`DATABASE_URL` and `API_VERSION` are required. Secrets (`RAZORPAY_*`,
-`GEMINI_API_KEY`) are placeholders and are never written to logs.
+`DATABASE_URL` and `API_VERSION` are required. Secrets are never written to logs.
 
 ---
 
@@ -176,9 +238,8 @@ JSON lines to stdout via `JsonLogFormatter`:
 | message | log message |
 | environment | `APP_ENV` |
 | request_id | contextvar or record extra |
+| correlation_id | contextvar or record extra |
 | method, path, status_code, latency_ms | access middleware extras |
-
-Factory: `app.config.logging.get_logger`.
 
 ---
 
@@ -186,8 +247,10 @@ Factory: `app.config.logging.get_logger`.
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| GET | `/api/v1/health` | Process liveness. Always 200. `data.database` is `connected` or `unavailable`. |
-| GET | `/api/v1/health/database` | Readiness. 200 or 503 `database_unavailable`. |
+| GET | `/api/v1/live` | Process liveness. Always 200. No database call. |
+| GET | `/api/v1/ready` | Readiness. 200 if Postgres answers `SELECT 1`, else 503. |
+| GET | `/api/v1/health` | Combined. Always 200. `data.database` is `connected` or `unavailable`. |
+| GET | `/api/v1/health/database` | Same check as `/ready`. |
 
 Docker `HEALTHCHECK` and Compose use `/api/v1/health`.
 
@@ -198,12 +261,20 @@ Docker `HEALTHCHECK` and Compose use `/api/v1/health`.
 All failures use:
 
 ```json
-{ "success": false, "error": "...", "code": "...", "request_id": "...", "timestamp": "..." }
+{
+  "success": false,
+  "error": "...",
+  "code": "...",
+  "request_id": "...",
+  "correlation_id": "...",
+  "timestamp": "..."
+}
 ```
 
 | Exception | HTTP | Code |
 | --- | --- | --- |
 | `DatabaseUnavailableError` | 503 | `database_unavailable` |
+| `MerchantNotFoundError` | 404 | `merchant_not_found` |
 | `RecoveryNotFoundError` | 404 | `recovery_not_found` |
 | `PolicyViolationError` | 403 | `policy_violation` |
 | `ValidationException` / `RequestValidationError` | 422 | `validation_error` |
@@ -213,10 +284,20 @@ All failures use:
 Success:
 
 ```json
-{ "success": true, "message": "ok", "data": {}, "request_id": "...", "timestamp": "..." }
+{
+  "success": true,
+  "message": "ok",
+  "data": {},
+  "request_id": "...",
+  "correlation_id": "...",
+  "timestamp": "..."
+}
 ```
 
-Builders: `success_body`, `error_body`, `error_response` in `app/core/responses.py`.
+Paginated success adds `page`, `page_size`, and `total`.
+
+Builders: `success_body`, `paginated_body`, `error_body`, `error_response` in
+`app/core/responses.py`. Generic models live in `app/schemas/common.py`.
 
 ---
 
@@ -227,7 +308,8 @@ Builders: `success_body`, `error_body`, `error_response` in `app/core/responses.
 - Tags: Health, Merchants, Recovery, Audit, Simulator
 - Docs: `/docs` · ReDoc `/redoc` · schema `/openapi.json`
 
-Placeholder routers return sample envelopes only. They do not query Postgres.
+Recovery, audit, and simulator routers remain placeholders. Merchant dashboard
+routes query PostgreSQL.
 
 ---
 
@@ -240,6 +322,7 @@ uv run pytest
 
 | File | Asserts |
 | --- | --- |
-| `test_health.py` | `/api/v1/health` is 200 and echoes `X-Request-ID` |
-| `test_settings.py` | Settings load; illegal `APP_ENV` rejected |
+| `test_health.py` | `/live` and `/health` are 200; request and correlation ids echo |
+| `test_merchants.py` | Dashboard paths are registered; unknown UUID is 404 when Postgres is up |
+| `test_settings.py` | Settings load; `get_settings` is cached; illegal `APP_ENV` rejected |
 | `test_database.py` | Engine and `get_db` initialize without a live query |

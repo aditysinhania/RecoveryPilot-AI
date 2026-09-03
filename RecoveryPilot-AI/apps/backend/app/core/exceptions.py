@@ -26,6 +26,13 @@ class DatabaseUnavailableError(ApplicationException):
         super().__init__(message, code="database_unavailable", status_code=503)
 
 
+class MerchantNotFoundError(ApplicationException):
+    """No merchant row exists for the given id."""
+
+    def __init__(self, message: str = "Merchant not found") -> None:
+        super().__init__(message, code="merchant_not_found", status_code=404)
+
+
 class RecoveryNotFoundError(ApplicationException):
     """A recovery case id was not found. Placeholder until Phase 4B."""
 

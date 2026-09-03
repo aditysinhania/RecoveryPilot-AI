@@ -1,4 +1,4 @@
-"""ASGI middleware: request id, timing, and structured access logs."""
+"""ASGI middleware: trusted host, CORS, gzip, ids, timing, access logs."""
 
 from __future__ import annotations
 
@@ -12,29 +12,38 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.config.constants import GZIP_MINIMUM_BYTES, REQUEST_ID_HEADER
+from app.config.constants import (
+    CORRELATION_ID_HEADER,
+    GZIP_MINIMUM_BYTES,
+    REQUEST_ID_HEADER,
+)
 from app.config.settings import Settings
-from app.utils.request_id import set_request_id
+from app.utils.request_id import set_correlation_id, set_request_id
 from app.utils.uuid import new_uuid_str
 
 logger = logging.getLogger(__name__)
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
-    """Assign a UUID request id and echo it on ``X-Request-ID``."""
+    """Assign request_id and correlation_id; echo both on the response."""
 
     async def dispatch(
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        """Bind request id onto the request, contextvar, and response header."""
-        incoming = request.headers.get(REQUEST_ID_HEADER)
-        request_id = incoming.strip() if incoming else new_uuid_str()
+        """Bind ids onto the request, contextvars, and response headers."""
+        incoming_rid = request.headers.get(REQUEST_ID_HEADER)
+        request_id = incoming_rid.strip() if incoming_rid else new_uuid_str()
+        incoming_cid = request.headers.get(CORRELATION_ID_HEADER)
+        correlation_id = incoming_cid.strip() if incoming_cid else request_id
         request.state.request_id = request_id
+        request.state.correlation_id = correlation_id
         set_request_id(request_id)
+        set_correlation_id(correlation_id)
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
+        response.headers[CORRELATION_ID_HEADER] = correlation_id
         return response
 
 
@@ -55,7 +64,7 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
 
 
 class StructuredLoggingMiddleware(BaseHTTPMiddleware):
-    """Log method, path, status, latency, and request id as JSON fields."""
+    """Log method, path, status, latency, request_id, and correlation_id."""
 
     async def dispatch(
         self,
@@ -69,6 +78,7 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
             "http.request",
             extra={
                 "request_id": getattr(request.state, "request_id", "-"),
+                "correlation_id": getattr(request.state, "correlation_id", "-"),
                 "method": request.method,
                 "path": request.url.path,
                 "status_code": response.status_code,
@@ -81,12 +91,13 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
 def register_middleware(app: FastAPI, settings: Settings) -> None:
     """Attach the middleware stack. Last ``add_middleware`` is outermost.
 
-    Order (outer → inner): Request ID → Timing → Logging → CORS → GZip → Trusted Host.
+    Request flow (outer → inner):
+    TrustedHost → CORS → GZip → Request ID → Timing → Structured Logging
+    → Exception Handling (Starlette) → route.
     """
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=settings.trusted_host_list or ["*"],
-    )
+    app.add_middleware(StructuredLoggingMiddleware)
+    app.add_middleware(RequestTimingMiddleware)
+    app.add_middleware(RequestIdMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=GZIP_MINIMUM_BYTES)
     app.add_middleware(
         CORSMiddleware,
@@ -94,8 +105,9 @@ def register_middleware(app: FastAPI, settings: Settings) -> None:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=[REQUEST_ID_HEADER],
+        expose_headers=[REQUEST_ID_HEADER, CORRELATION_ID_HEADER],
     )
-    app.add_middleware(StructuredLoggingMiddleware)
-    app.add_middleware(RequestTimingMiddleware)
-    app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.trusted_host_list or ["*"],
+    )

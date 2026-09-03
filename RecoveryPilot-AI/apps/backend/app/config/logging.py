@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.config.settings import settings
-from app.utils.request_id import get_request_id
+from app.utils.request_id import get_correlation_id, get_request_id
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -24,6 +24,7 @@ class JsonLogFormatter(logging.Formatter):
             "message": record.getMessage(),
             "environment": settings.app_env,
             "request_id": getattr(record, "request_id", None) or get_request_id(),
+            "correlation_id": getattr(record, "correlation_id", None) or get_correlation_id(),
         }
         for key in ("method", "path", "status_code", "latency_ms"):
             value = getattr(record, key, None)

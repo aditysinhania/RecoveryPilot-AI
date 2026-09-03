@@ -1,5 +1,4 @@
-"""HTTP-adjacent service adapters.
+"""HTTP-adjacent adapters over the monorepo ``services/`` package.
 
-Domain recovery rules stay in the monorepo ``services/`` package.
-This folder is reserved for thin FastAPI-facing orchestration added in later phases.
+Routers import from here. SQL and domain rules stay in ``services/``.
 """

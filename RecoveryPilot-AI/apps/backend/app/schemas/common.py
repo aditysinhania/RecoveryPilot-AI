@@ -1,37 +1,59 @@
-"""HTTP envelope schemas. Domain entities remain in ``shared.schemas``."""
+"""Generic HTTP envelopes used by every v1 endpoint."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
+T = TypeVar("T")
 
-class SuccessResponse(BaseModel):
-    """Standard success body returned by every healthy endpoint."""
+
+class ApiResponse(BaseModel, Generic[T]):
+    """Standard success envelope."""
 
     success: bool = True
-    message: str
-    data: Any = None
+    message: str = "ok"
+    data: T | None = None
     request_id: str
+    correlation_id: str
+    timestamp: str
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Success envelope for a page of rows."""
+
+    success: bool = True
+    message: str = "ok"
+    data: list[T] = Field(default_factory=list)
+    page: int
+    page_size: int
+    total: int
+    request_id: str
+    correlation_id: str
     timestamp: str
 
 
 class ErrorResponse(BaseModel):
-    """Standard failure body returned by exception handlers."""
+    """Standard failure envelope returned by exception handlers."""
 
     success: bool = False
     error: str
     code: str
     request_id: str
+    correlation_id: str
     timestamp: str
 
 
 class HealthData(BaseModel):
-    """Liveness payload."""
+    """Liveness / readiness payload."""
 
     status: str
     environment: str
     version: str
     timestamp: str
     database: str = Field(description="connected | unavailable")
+
+
+# Backward-compatible alias used by Phase 4A health helpers.
+SuccessResponse = ApiResponse[Any]
