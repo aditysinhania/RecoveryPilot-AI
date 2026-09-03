@@ -16,6 +16,8 @@ dependencies = [
     "recoverypilot-services",
     "recoverypilot-integrations",
     "recoverypilot-simulator",
+    "httpx>=0.27.0",
+    "pytest>=8.3.0",
 ]
 
 [build-system]
@@ -30,3 +32,8 @@ recoverypilot-shared = { workspace = true }
 recoverypilot-services = { workspace = true }
 recoverypilot-integrations = { workspace = true }
 recoverypilot-simulator = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+

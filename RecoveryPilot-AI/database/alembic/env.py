@@ -16,7 +16,7 @@ for _path in (ROOT, SHARED_SRC, BACKEND):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from app.core.config import settings  # noqa: E402
+from app.config.settings import settings  # noqa: E402
 from database.models import Base  # noqa: E402  # registers all mapped tables
 
 config = context.config

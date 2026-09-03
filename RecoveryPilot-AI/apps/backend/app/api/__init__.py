@@ -1,1 +1,1 @@
-"""FastAPI routers. Domain routers are added as sibling modules."""
+"""FastAPI routers. Versioned routes live under ``app.api.v1``."""
