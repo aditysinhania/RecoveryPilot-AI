@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     razorpay_key_id: str = "rzp_test_placeholder"
     razorpay_key_secret: str = "placeholder_secret"
     gemini_api_key: str = "placeholder_gemini_key"
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_temperature: float = 0.2
+    gemini_max_output_tokens: int = 512
 
     @field_validator("app_env")
     @classmethod

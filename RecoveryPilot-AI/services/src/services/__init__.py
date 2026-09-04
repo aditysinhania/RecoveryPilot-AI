@@ -21,6 +21,14 @@ from services.diagnosis_service import (
     diagnose_payment,
     summarize_results,
 )
+from services.explanations.explanation_service import (
+    explain_compliance,
+    explain_customer_sms,
+    explain_customer_whatsapp,
+    explain_dashboard,
+    explain_merchant,
+    generate_batch_summaries,
+)
 from services.executor_service import (
     execute_batch,
     execute_case,
@@ -91,6 +99,12 @@ __all__ = [
     "execute_batch",
     "execute_case",
     "execute_plan",
+    "explain_compliance",
+    "explain_customer_sms",
+    "explain_customer_whatsapp",
+    "explain_dashboard",
+    "explain_merchant",
+    "generate_batch_summaries",
     "get_audit_events",
     "get_case_audit_timeline",
     "get_correlation_trace",
