@@ -14,6 +14,13 @@ from services.audit_service import (
     get_policy_decisions,
     parse_audit_filters,
 )
+from services.diagnosis_service import (
+    PaymentNotFoundError,
+    diagnose_batch,
+    diagnose_case,
+    diagnose_payment,
+    summarize_results,
+)
 from services.merchant_service import (
     FailurePageResult,
     FailureRow,
@@ -51,6 +58,7 @@ __all__ = [
     "FailureRow",
     "MerchantNotFoundError",
     "MerchantSummaryResult",
+    "PaymentNotFoundError",
     "PaymentPageResult",
     "PolicyDecisionRecord",
     "QueueFilters",
@@ -59,6 +67,9 @@ __all__ = [
     "RecoveryCaseNotFoundError",
     "RecoverySummaryTotals",
     "TimelineEvent",
+    "diagnose_batch",
+    "diagnose_case",
+    "diagnose_payment",
     "get_audit_events",
     "get_case_audit_timeline",
     "get_correlation_trace",
@@ -74,4 +85,5 @@ __all__ = [
     "parse_audit_filters",
     "parse_queue_filters",
     "require_merchant",
+    "summarize_results",
 ]
