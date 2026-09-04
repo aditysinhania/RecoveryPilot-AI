@@ -1,5 +1,19 @@
 """Business logic for RecoveryPilot AI. Implementations land in sibling modules."""
 
+from services.audit_service import (
+    AuditCaseNotFoundError,
+    AuditEventFilters,
+    AuditEventPage,
+    AuditEventRecord,
+    CaseAuditTimeline,
+    CorrelationTrace,
+    PolicyDecisionRecord,
+    get_audit_events,
+    get_case_audit_timeline,
+    get_correlation_trace,
+    get_policy_decisions,
+    parse_audit_filters,
+)
 from services.merchant_service import (
     FailurePageResult,
     FailureRow,
@@ -27,18 +41,29 @@ from services.recovery_service import (
 )
 
 __all__ = [
+    "AuditCaseNotFoundError",
+    "AuditEventFilters",
+    "AuditEventPage",
+    "AuditEventRecord",
+    "CaseAuditTimeline",
+    "CorrelationTrace",
     "FailurePageResult",
     "FailureRow",
     "MerchantNotFoundError",
     "MerchantSummaryResult",
     "PaymentPageResult",
+    "PolicyDecisionRecord",
     "QueueFilters",
     "QueuePageResult",
     "RecoveryCaseDetail",
     "RecoveryCaseNotFoundError",
     "RecoverySummaryTotals",
     "TimelineEvent",
+    "get_audit_events",
+    "get_case_audit_timeline",
+    "get_correlation_trace",
     "get_metrics",
+    "get_policy_decisions",
     "get_recovery_case",
     "get_recovery_queue",
     "get_recovery_summary",
@@ -46,6 +71,7 @@ __all__ = [
     "get_summary",
     "list_failures",
     "list_payments",
+    "parse_audit_filters",
     "parse_queue_filters",
     "require_merchant",
 ]

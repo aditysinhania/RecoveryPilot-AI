@@ -2,7 +2,10 @@
 
 from app.core.exceptions import (
     ApplicationException,
+    AuditEventNotFoundError,
+    CorrelationNotFoundError,
     DatabaseUnavailableError,
+    InvalidAuditFilterError,
     InvalidDateRangeError,
     InvalidFilterError,
     MerchantNotFoundError,
@@ -14,6 +17,9 @@ from app.core.responses import error_body, success_body
 
 __all__ = [
     "ApplicationException",
+    "AuditEventNotFoundError",
+    "CorrelationNotFoundError",
+    "InvalidAuditFilterError",
     "InvalidDateRangeError",
     "InvalidFilterError",
     "MerchantNotFoundError",

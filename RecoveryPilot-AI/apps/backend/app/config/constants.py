@@ -31,6 +31,6 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     {"name": "Health", "description": "Liveness (/live) and readiness (/ready) probes."},
     {"name": "Merchants", "description": "Read-only merchant dashboard APIs."},
     {"name": "Recovery", "description": "Read-only recovery queue, case, timeline, and summary APIs."},
-    {"name": "Audit", "description": "Audit replay placeholders."},
+    {"name": "Audit", "description": "Compliance replay, event explorer, correlation and policy traces."},
     {"name": "Simulator", "description": "Batch simulator placeholders."},
 ]

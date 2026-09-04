@@ -54,6 +54,27 @@ class InvalidDateRangeError(ApplicationException):
         super().__init__(message, code="invalid_date_range", status_code=400)
 
 
+class AuditEventNotFoundError(ApplicationException):
+    """No audit trail exists for the requested recovery case."""
+
+    def __init__(self, message: str = "Audit event not found") -> None:
+        super().__init__(message, code="audit_event_not_found", status_code=404)
+
+
+class CorrelationNotFoundError(ApplicationException):
+    """No audit rows match the requested correlation id."""
+
+    def __init__(self, message: str = "Correlation id not found") -> None:
+        super().__init__(message, code="correlation_not_found", status_code=404)
+
+
+class InvalidAuditFilterError(ApplicationException):
+    """An audit explorer filter value cannot be interpreted."""
+
+    def __init__(self, message: str = "Invalid audit filter") -> None:
+        super().__init__(message, code="invalid_audit_filter", status_code=400)
+
+
 class PolicyViolationError(ApplicationException):
     """A policy engine gate blocked an action. Placeholder until Phase 4B."""
 

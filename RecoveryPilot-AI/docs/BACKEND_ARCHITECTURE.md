@@ -1,10 +1,10 @@
-# Backend architecture — Phase 4C
+# Backend architecture — Phase 4D
 
 FastAPI backend for RecoveryPilot AI (Razorpay Hackathon Track 03).
 Phase 4A delivered the HTTP foundation. Phase 4B added read-only merchant
-dashboard APIs. Phase 4C adds the **recovery queue** that powers Payments
-Requiring Attention. There is still **no** diagnosis, planner, Razorpay call,
-Gemini, scheduler, or payment execution.
+dashboard APIs. Phase 4C added the recovery queue. Phase 4D adds **audit
+timeline and compliance replay**. There is still **no** diagnosis, planner,
+Razorpay call, Gemini, scheduler, or payment execution.
 
 Run locally:
 
@@ -28,7 +28,7 @@ apps/backend/app/
 │       ├── health.py       # /live, /ready, /health, /health/database
 │       ├── merchants.py    # dashboard (thin; no SQL)
 │       ├── recovery.py     # queue, case, timeline, summary (thin)
-│       ├── audit.py        # placeholders
+│       ├── audit.py        # timeline, explorer, correlation, policy (thin)
 │       └── simulator.py    # placeholders
 ├── config/
 │   ├── settings.py         # Pydantic BaseSettings; get_settings() is @lru_cache
@@ -44,15 +44,18 @@ apps/backend/app/
 ├── schemas/
 │   ├── common.py           # ApiResponse[T], PaginatedResponse[T], ErrorResponse
 │   ├── merchant_dashboard.py
-│   └── recovery.py         # RecoveryQueueItem, case, timeline, summary
+│   ├── recovery.py         # RecoveryQueueItem, case, timeline, summary
+│   └── audit.py            # AuditEventResponse, timeline, correlation, policy
 ├── services/
 │   ├── merchant_service.py # HTTP adapter; maps ORM → Pydantic, 404
-│   └── recovery_service.py # HTTP adapter for the recovery queue
+│   ├── recovery_service.py # HTTP adapter for the recovery queue
+│   └── audit_service.py    # HTTP adapter for compliance replay
 └── utils/                  # pagination (PageMeta), request_id, time
 
 services/src/services/
 ├── merchant_service.py     # merchant dashboard SQLAlchemy queries
-└── recovery_service.py     # recovery queue SQLAlchemy queries
+├── recovery_service.py     # recovery queue SQLAlchemy queries
+└── audit_service.py        # audit_logs replay SQLAlchemy queries
 ```
 
 Canonical ORM tables remain in `database/models/`. Domain queries live in
@@ -244,7 +247,108 @@ flowchart TB
 
 - **`services.recovery_service`**: `get_recovery_queue`, `get_recovery_case`, `get_recovery_timeline`, `get_recovery_summary`. Raises domain `RecoveryCaseNotFoundError`, `InvalidFilterError`, `InvalidDateRangeError`.
 - **`app.services.recovery_service`**: Maps those onto HTTP exceptions and dashboard DTOs. Never returns ORM.
-- Webhooks have no FK; timeline matches `payload.payload.payment.entity.id` to `payments.razorpay_payment_id`. Audit events are **summaries only** (`event_summary`, type, actor) — the audit router is unchanged.
+- Webhooks have no FK; timeline matches `payload.payload.payment.entity.id` to `payments.razorpay_payment_id`. Audit events on the recovery timeline are **summaries only**; full compliance replay lives under `/api/v1/audit`.
+
+---
+
+## Audit service architecture
+
+```mermaid
+flowchart TB
+    R[audit.py router]
+    A[app/services/audit_service.py adapter]
+    D[services/audit_service.py]
+    AL[(audit_logs)]
+    RC[(recovery_cases)]
+    P[(payments)]
+    RA[(recovery_actions)]
+    WH[(webhook_events)]
+
+    R -->|"Depends(get_db)"| A
+    A -->|map 404 / filters / Pydantic| D
+    D --> AL
+    D --> RC
+    D --> P
+    D --> RA
+    D --> WH
+```
+
+| Route | Service call | Envelope |
+| --- | --- | --- |
+| `GET /api/v1/audit/cases/{recovery_case_id}` | `get_case_audit_timeline` | `ApiResponse[AuditTimelineResponse]` |
+| `GET /api/v1/audit/events` | `get_audit_events` | `PaginatedResponse[AuditEventResponse]` |
+| `GET /api/v1/audit/correlation/{correlation_id}` | `get_correlation_trace` | `ApiResponse[CorrelationTraceResponse]` |
+| `GET /api/v1/audit/cases/{recovery_case_id}/policy` | `get_policy_decisions` | `ApiResponse[list[PolicyDecisionResponse]]` |
+
+`audit_logs.structured_payload` is read-only. Reviewer DTOs copy a small safe key subset (`reason`, `model`, `confidence`, …). Stored JSON is never rewritten.
+
+Each event exposes `request_id` and `correlation_id`. Those columns do not exist on `audit_logs`; values come from payload keys when present, otherwise `correlation_id` is the recovery case id (one workflow) and `request_id` is the audit row id.
+
+Policy `BLOCK` is presented as **DENY**. `RECOVERY_STOPPED` is presented as **STOP**. If a case has no policy rows, the API returns one placeholder `ALLOW` (`recovery_policy_v1`).
+
+---
+
+## Correlation ID replay flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Router as /api/v1/audit
+    participant Adapter as app.services.audit_service
+    participant Domain as services.audit_service
+    participant PG as PostgreSQL
+
+    Client->>Router: GET /correlation/{correlation_id}
+    Router->>Adapter: get_correlation_trace(db, id)
+    Adapter->>Domain: get_correlation_trace
+    Domain->>PG: audit_logs WHERE payload.correlation_id OR recovery_case_id
+    alt rows found
+        PG-->>Domain: ordered audit_logs
+        Domain-->>Client: CorrelationTraceResponse
+    else UUID matches a case with no payload key
+        Domain->>PG: case timeline (audit_logs + gap-fill)
+        Domain-->>Client: CorrelationTraceResponse
+    else nothing matches
+        Domain-->>Client: 404 correlation_not_found
+    end
+```
+
+Explorer filters (`GET /events`) also accept `correlation_id` and `request_id` and sort **newest first**.
+
+---
+
+## Compliance timeline
+
+```mermaid
+flowchart LR
+    F[payment failed] --> D[diagnosis created]
+    D --> P[policy decision]
+    P --> A[recovery actions]
+    A --> W[webhook events]
+    W --> O[final recovery outcome]
+```
+
+`GET /audit/cases/{id}` merges `audit_logs` (source of truth) with gap-fill from payments, actions, webhooks, and terminal `recovery_status`. Events are sorted by timestamp **ascending**. Each item includes `event_type`, `actor`, `timestamp`, `summary`, `request_id`, and `correlation_id`.
+
+---
+
+## Request → Audit → Database
+
+```mermaid
+flowchart LR
+    REQ[HTTP request] --> DEP["Depends(get_db)"]
+    DEP --> SESS[SQLAlchemy Session]
+    REQ --> RT[audit.py thin router]
+    RT --> AD[app.services.audit_service]
+    AD --> DOM[services.audit_service]
+    DOM --> SESS
+    SESS --> PG[(PostgreSQL audit_logs)]
+    DOM --> MAP[human-readable DTO]
+    MAP --> ENV[ApiResponse / PaginatedResponse]
+    ENV --> RES[JSON response]
+```
+
+Routers never return ORM objects. `structured_payload` is not echoed in full.
 
 ---
 
@@ -399,6 +503,9 @@ All failures use:
 | `RecoveryNotFoundError` | 404 | `recovery_case_not_found` |
 | `InvalidFilterError` | 400 | `invalid_filter` |
 | `InvalidDateRangeError` | 400 | `invalid_date_range` |
+| `AuditEventNotFoundError` | 404 | `audit_event_not_found` |
+| `CorrelationNotFoundError` | 404 | `correlation_not_found` |
+| `InvalidAuditFilterError` | 400 | `invalid_audit_filter` |
 | `PolicyViolationError` | 403 | `policy_violation` |
 | `ValidationException` / `RequestValidationError` | 422 | `validation_error` |
 | `ApplicationException` | mapped | mapped |
@@ -431,7 +538,7 @@ Builders: `success_body`, `paginated_body`, `error_body`, `error_response` in
 - Tags: Health, Merchants, Recovery, Audit, Simulator
 - Docs: `/docs` · ReDoc `/redoc` · schema `/openapi.json`
 
-Recovery queue routes query PostgreSQL. Audit and simulator routers remain placeholders. Merchant dashboard routes query PostgreSQL.
+Recovery queue and audit replay routes query PostgreSQL. Simulator routers remain placeholders. Merchant dashboard routes query PostgreSQL.
 
 ---
 
@@ -447,6 +554,7 @@ uv run pytest
 | `test_health.py` | `/live` and `/health` are 200; request and correlation ids echo |
 | `test_merchants.py` | Dashboard paths are registered; unknown UUID is 404 when Postgres is up |
 | `test_recovery.py` | Queue paths registered; `invalid_filter` / `invalid_date_range`; case 404 when Postgres is up |
+| `test_audit.py` | Audit paths registered; `invalid_audit_filter`; correlation 404 when Postgres is up |
 | `test_pagination.py` | `normalize_page` clamps size; `build_page_meta` computes pages and cursors |
 | `test_settings.py` | Settings load; `get_settings` is cached; illegal `APP_ENV` rejected |
 | `test_database.py` | Engine and `get_db` initialize without a live query |
