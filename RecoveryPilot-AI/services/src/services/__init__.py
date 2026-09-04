@@ -21,6 +21,12 @@ from services.diagnosis_service import (
     diagnose_payment,
     summarize_results,
 )
+from services.executor_service import (
+    execute_batch,
+    execute_case,
+    execute_plan,
+    summarize_executions,
+)
 from services.merchant_service import (
     FailurePageResult,
     FailureRow,
@@ -82,6 +88,9 @@ __all__ = [
     "diagnose_payment",
     "evaluate_batch",
     "evaluate_case",
+    "execute_batch",
+    "execute_case",
+    "execute_plan",
     "get_audit_events",
     "get_case_audit_timeline",
     "get_correlation_trace",
@@ -100,6 +109,7 @@ __all__ = [
     "plan_case",
     "require_merchant",
     "summarize_decisions",
+    "summarize_executions",
     "summarize_plans",
     "summarize_results",
 ]
