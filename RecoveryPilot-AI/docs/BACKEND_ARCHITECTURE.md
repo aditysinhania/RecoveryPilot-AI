@@ -1,9 +1,10 @@
-# Backend architecture — Phase 4B
+# Backend architecture — Phase 4C
 
 FastAPI backend for RecoveryPilot AI (Razorpay Hackathon Track 03).
-Phase 4A delivered the HTTP foundation. Phase 4B adds **read-only merchant
-dashboard APIs** and small infrastructure tightening. There is still **no**
-diagnosis, planner, Razorpay call, Gemini, or payment execution.
+Phase 4A delivered the HTTP foundation. Phase 4B added read-only merchant
+dashboard APIs. Phase 4C adds the **recovery queue** that powers Payments
+Requiring Attention. There is still **no** diagnosis, planner, Razorpay call,
+Gemini, scheduler, or payment execution.
 
 Run locally:
 
@@ -26,7 +27,7 @@ apps/backend/app/
 │       ├── router.py       # central /api/v1 registration
 │       ├── health.py       # /live, /ready, /health, /health/database
 │       ├── merchants.py    # dashboard (thin; no SQL)
-│       ├── recovery.py     # placeholders
+│       ├── recovery.py     # queue, case, timeline, summary (thin)
 │       ├── audit.py        # placeholders
 │       └── simulator.py    # placeholders
 ├── config/
@@ -42,13 +43,16 @@ apps/backend/app/
 ├── db/                     # engine, get_db, SELECT 1
 ├── schemas/
 │   ├── common.py           # ApiResponse[T], PaginatedResponse[T], ErrorResponse
-│   └── merchant_dashboard.py
+│   ├── merchant_dashboard.py
+│   └── recovery.py         # RecoveryQueueItem, case, timeline, summary
 ├── services/
-│   └── merchant_service.py # HTTP adapter; maps ORM → Pydantic, 404
-└── utils/
+│   ├── merchant_service.py # HTTP adapter; maps ORM → Pydantic, 404
+│   └── recovery_service.py # HTTP adapter for the recovery queue
+└── utils/                  # pagination (PageMeta), request_id, time
 
 services/src/services/
-└── merchant_service.py     # all merchant dashboard SQLAlchemy queries
+├── merchant_service.py     # merchant dashboard SQLAlchemy queries
+└── recovery_service.py     # recovery queue SQLAlchemy queries
 ```
 
 Canonical ORM tables remain in `database/models/`. Domain queries live in
@@ -93,6 +97,89 @@ Unknown `merchant_id` returns HTTP 404 `merchant_not_found`.
 
 ---
 
+## Recovery API flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Router as /api/v1/recovery
+    participant Adapter as app.services.recovery_service
+    participant Domain as services.recovery_service
+    participant PG as PostgreSQL
+
+    Client->>Router: GET /queue?status=&page=
+    Router->>Router: Depends(get_db), normalize_page
+    Router->>Adapter: get_recovery_queue(...)
+    Adapter->>Domain: parse_queue_filters
+    Adapter->>Domain: get_recovery_queue(db, filters, offset, limit)
+    Domain->>PG: JOIN recovery_cases, payments, customers
+    PG-->>Domain: page + COUNT(*)
+    Domain-->>Adapter: QueuePageResult
+    Adapter-->>Router: list[RecoveryQueueItem]
+    Router-->>Client: PaginatedResponse
+```
+
+| Route | Service call | Envelope |
+| --- | --- | --- |
+| `GET /api/v1/recovery/queue` | `get_recovery_queue` | `PaginatedResponse[RecoveryQueueItem]` |
+| `GET /api/v1/recovery/cases/{recovery_case_id}` | `get_recovery_case` | `ApiResponse[RecoveryCaseResponse]` |
+| `GET /api/v1/recovery/cases/{recovery_case_id}/timeline` | `get_recovery_timeline` | `ApiResponse[list[RecoveryTimelineEvent]]` |
+| `GET /api/v1/recovery/summary` | `get_recovery_summary` | `ApiResponse[RecoverySummaryResponse]` |
+
+Unknown `recovery_case_id` returns HTTP 404 `recovery_case_not_found`.
+
+---
+
+## Queue filtering flow
+
+```mermaid
+flowchart TD
+    Q[Query params] --> P[parse_queue_filters]
+    P -->|bad enum / date / priority| F[invalid_filter 400]
+    P -->|date_from after date_to| D[invalid_date_range 400]
+    P --> N[normalize_page]
+    N --> SQL[JOIN cases + payments + customers]
+    SQL --> W{WHERE}
+    W --> S[status = RecoveryStatus]
+    W --> R[failure_reason on payment or diagnosis]
+    W --> C[customer_segment]
+    W --> PR[priority band or min score]
+    W --> M[payment_method]
+    W --> DT[payment.created_at between date_from and date_to]
+    W --> MID[optional merchant_id]
+    SQL --> ORD["ORDER BY priority_score DESC NULLS LAST, payment.created_at ASC"]
+    ORD --> PAGE[OFFSET / LIMIT]
+    PAGE --> META[total_records, total_pages, has_next, has_previous]
+```
+
+`priority` accepts `HIGH` (≥ 0.8), `MEDIUM` (0.6–0.8), `LOW` (< 0.6), or a numeric minimum score.
+
+---
+
+## Recovery case lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> OPEN: payment failed, case opened
+    OPEN --> DIAGNOSED: diagnosis fields stored
+    DIAGNOSED --> WAITING_RETRY: retry / payday wait scheduled
+    DIAGNOSED --> WAITING_PROMISE: promise-to-pay recorded
+    WAITING_RETRY --> RECOVERED: payment captured
+    WAITING_RETRY --> ESCALATED: policy or playbook escalate
+    WAITING_RETRY --> STOPPED: stop recovery
+    WAITING_PROMISE --> RECOVERED: promise fulfilled
+    WAITING_PROMISE --> WAITING_RETRY: promise broken, retry
+    WAITING_PROMISE --> STOPPED: stop recovery
+    ESCALATED --> RECOVERED: agent recovered
+    ESCALATED --> STOPPED: agent stopped
+    RECOVERED --> CLOSED: case closed
+    STOPPED --> CLOSED: case closed
+```
+
+Timeline events (ascending `occurred_at`): payment failed → diagnosis created → actions scheduled/executed → webhook updates → audit summaries. This phase **reads** those rows; it does not run diagnosis, policy, or Razorpay.
+
+---
+
 ## Merchant service layer
 
 ```mermaid
@@ -124,6 +211,40 @@ flowchart TB
   Metrics with no snapshot row become zeros, not 404.
 - Failures are `payment_status = FAILED`, newest `created_at` first, left-joined
   to `recovery_cases` for `recovery_status`.
+
+---
+
+## Recovery service layer
+
+```mermaid
+flowchart TB
+    R[recovery.py router]
+    A[app/services/recovery_service.py adapter]
+    D[services/recovery_service.py]
+    RC[(recovery_cases)]
+    P[(payments)]
+    C[(customers)]
+    S[(subscriptions)]
+    RA[(recovery_actions)]
+    PTP[(promises_to_pay)]
+    AL[(audit_logs)]
+    WH[(webhook_events)]
+
+    R -->|"Depends(get_db)"| A
+    A -->|map 404 / filters / Pydantic| D
+    D --> RC
+    D --> P
+    D --> C
+    D --> S
+    D --> RA
+    D --> PTP
+    D --> AL
+    D --> WH
+```
+
+- **`services.recovery_service`**: `get_recovery_queue`, `get_recovery_case`, `get_recovery_timeline`, `get_recovery_summary`. Raises domain `RecoveryCaseNotFoundError`, `InvalidFilterError`, `InvalidDateRangeError`.
+- **`app.services.recovery_service`**: Maps those onto HTTP exceptions and dashboard DTOs. Never returns ORM.
+- Webhooks have no FK; timeline matches `payload.payload.payment.entity.id` to `payments.razorpay_payment_id`. Audit events are **summaries only** (`event_summary`, type, actor) — the audit router is unchanged.
 
 ---
 
@@ -275,7 +396,9 @@ All failures use:
 | --- | --- | --- |
 | `DatabaseUnavailableError` | 503 | `database_unavailable` |
 | `MerchantNotFoundError` | 404 | `merchant_not_found` |
-| `RecoveryNotFoundError` | 404 | `recovery_not_found` |
+| `RecoveryNotFoundError` | 404 | `recovery_case_not_found` |
+| `InvalidFilterError` | 400 | `invalid_filter` |
+| `InvalidDateRangeError` | 400 | `invalid_date_range` |
 | `PolicyViolationError` | 403 | `policy_violation` |
 | `ValidationException` / `RequestValidationError` | 422 | `validation_error` |
 | `ApplicationException` | mapped | mapped |
@@ -294,7 +417,7 @@ Success:
 }
 ```
 
-Paginated success adds `page`, `page_size`, and `total`.
+Paginated success adds `page`, `page_size`, `total`, `total_records`, `total_pages`, `has_next`, and `has_previous`. `utils/pagination.py` (`normalize_page`, `build_page_meta`) is the reusable helper.
 
 Builders: `success_body`, `paginated_body`, `error_body`, `error_response` in
 `app/core/responses.py`. Generic models live in `app/schemas/common.py`.
@@ -308,8 +431,7 @@ Builders: `success_body`, `paginated_body`, `error_body`, `error_response` in
 - Tags: Health, Merchants, Recovery, Audit, Simulator
 - Docs: `/docs` · ReDoc `/redoc` · schema `/openapi.json`
 
-Recovery, audit, and simulator routers remain placeholders. Merchant dashboard
-routes query PostgreSQL.
+Recovery queue routes query PostgreSQL. Audit and simulator routers remain placeholders. Merchant dashboard routes query PostgreSQL.
 
 ---
 
@@ -324,5 +446,7 @@ uv run pytest
 | --- | --- |
 | `test_health.py` | `/live` and `/health` are 200; request and correlation ids echo |
 | `test_merchants.py` | Dashboard paths are registered; unknown UUID is 404 when Postgres is up |
+| `test_recovery.py` | Queue paths registered; `invalid_filter` / `invalid_date_range`; case 404 when Postgres is up |
+| `test_pagination.py` | `normalize_page` clamps size; `build_page_meta` computes pages and cursors |
 | `test_settings.py` | Settings load; `get_settings` is cached; illegal `APP_ENV` rejected |
 | `test_database.py` | Engine and `get_db` initialize without a live query |

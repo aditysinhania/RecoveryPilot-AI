@@ -1,7 +1,7 @@
 """Small helpers shared by middleware, responses, and routers."""
 
 from app.utils.json import dumps, redact_mapping
-from app.utils.pagination import Page, normalize_page
+from app.utils.pagination import Page, PageMeta, build_page_meta, normalize_page
 from app.utils.request_id import (
     get_correlation_id,
     get_request_id,
@@ -13,6 +13,8 @@ from app.utils.uuid import new_uuid, new_uuid_str
 
 __all__ = [
     "Page",
+    "PageMeta",
+    "build_page_meta",
     "dumps",
     "get_correlation_id",
     "get_request_id",

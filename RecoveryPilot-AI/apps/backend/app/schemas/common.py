@@ -29,6 +29,10 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     page_size: int
     total: int
+    total_records: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
     request_id: str
     correlation_id: str
     timestamp: str

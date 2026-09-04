@@ -7,6 +7,7 @@ from typing import Any, TypeVar
 from fastapi.responses import JSONResponse
 
 from app.schemas.common import ApiResponse, ErrorResponse, PaginatedResponse
+from app.utils.pagination import build_page_meta
 from app.utils.request_id import get_correlation_id, get_request_id
 from app.utils.time import isoformat_now
 
@@ -43,14 +44,19 @@ def paginated_body(
     total: int,
     message: str = "ok",
 ) -> dict[str, Any]:
-    """Build a paginated success envelope."""
+    """Build a paginated success envelope including page-window metadata."""
     rid, cid = _ids()
+    meta = build_page_meta(page, page_size, total)
     return PaginatedResponse[Any](
         message=message,
         data=data,
-        page=page,
-        page_size=page_size,
-        total=total,
+        page=meta.page,
+        page_size=meta.page_size,
+        total=meta.total_records,
+        total_records=meta.total_records,
+        total_pages=meta.total_pages,
+        has_next=meta.has_next,
+        has_previous=meta.has_previous,
         request_id=rid,
         correlation_id=cid,
         timestamp=isoformat_now(),

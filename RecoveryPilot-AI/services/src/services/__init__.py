@@ -12,6 +12,19 @@ from services.merchant_service import (
     list_payments,
     require_merchant,
 )
+from services.recovery_service import (
+    QueueFilters,
+    QueuePageResult,
+    RecoveryCaseDetail,
+    RecoveryCaseNotFoundError,
+    RecoverySummaryTotals,
+    TimelineEvent,
+    get_recovery_case,
+    get_recovery_queue,
+    get_recovery_summary,
+    get_recovery_timeline,
+    parse_queue_filters,
+)
 
 __all__ = [
     "FailurePageResult",
@@ -19,9 +32,20 @@ __all__ = [
     "MerchantNotFoundError",
     "MerchantSummaryResult",
     "PaymentPageResult",
+    "QueueFilters",
+    "QueuePageResult",
+    "RecoveryCaseDetail",
+    "RecoveryCaseNotFoundError",
+    "RecoverySummaryTotals",
+    "TimelineEvent",
     "get_metrics",
+    "get_recovery_case",
+    "get_recovery_queue",
+    "get_recovery_summary",
+    "get_recovery_timeline",
     "get_summary",
     "list_failures",
     "list_payments",
+    "parse_queue_filters",
     "require_merchant",
 ]

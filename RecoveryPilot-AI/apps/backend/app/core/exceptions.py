@@ -34,10 +34,24 @@ class MerchantNotFoundError(ApplicationException):
 
 
 class RecoveryNotFoundError(ApplicationException):
-    """A recovery case id was not found. Placeholder until Phase 4B."""
+    """A recovery case id was not found."""
 
     def __init__(self, message: str = "Recovery case not found") -> None:
-        super().__init__(message, code="recovery_not_found", status_code=404)
+        super().__init__(message, code="recovery_case_not_found", status_code=404)
+
+
+class InvalidFilterError(ApplicationException):
+    """A queue filter value is not an allowed enum, band, or number."""
+
+    def __init__(self, message: str = "Invalid filter") -> None:
+        super().__init__(message, code="invalid_filter", status_code=400)
+
+
+class InvalidDateRangeError(ApplicationException):
+    """``date_from`` is after ``date_to``."""
+
+    def __init__(self, message: str = "date_from must be on or before date_to") -> None:
+        super().__init__(message, code="invalid_date_range", status_code=400)
 
 
 class PolicyViolationError(ApplicationException):
