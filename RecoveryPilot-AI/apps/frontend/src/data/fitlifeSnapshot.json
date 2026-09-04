@@ -1,0 +1,827 @@
+{
+  "seed": 42,
+  "as_of": "2026-09-02T18:00:00+05:30",
+  "source": "simulator_seed_42",
+  "merchant": {
+    "id": "6dad1d88-3e3f-5788-b10e-31467d72c022",
+    "list_id": "00000000-0000-4000-8000-000000000001",
+    "merchant_name": "FitLife Gym",
+    "business_category": "Fitness & Wellness",
+    "timezone": "Asia/Kolkata",
+    "email": "billing@fitlifegym.in",
+    "phone": "+918045550100"
+  },
+  "counts": {
+    "customers": 1200,
+    "subscriptions": 1800,
+    "payments": 5000,
+    "failed_payments": 750,
+    "recovery_cases": 750
+  },
+  "metrics": {
+    "revenue_at_risk": 84225000,
+    "recovered_revenue": 58349500,
+    "suppressed_revenue": 13988300,
+    "recovery_rate": 0.6928,
+    "escalation_count": 98,
+    "policy_stop_count": 77,
+    "updated_at": "2026-09-02T18:00:00+05:30"
+  },
+  "baseline": {
+    "strategy": "baseline_immediate_retry",
+    "recovered_count": 251,
+    "recovered_revenue": 28674900,
+    "harmful_retries": 117,
+    "recovery_rate": 0.3405,
+    "notes": "No payday wait, no stop on dispute/already-paid/revoked, no method switch."
+  },
+  "lift_recovered_revenue": 29674600,
+  "harmful_retries_prevented": 117,
+  "communication_cost_saved": -38310,
+  "communication_costs": {
+    "ai_total_paise": 49560,
+    "baseline_total_paise": 11250,
+    "saved_paise": -38310
+  },
+  "recovery_summary": {
+    "open_cases": 48,
+    "recovered_cases": 505,
+    "stopped_cases": 77,
+    "escalated_cases": 98,
+    "waiting_retry": 33,
+    "waiting_promise": 15,
+    "total_revenue_at_risk": 84225000,
+    "recovered_revenue": 58349500,
+    "recovery_rate": 0.6928,
+    "pending_recovery_value": 4895200,
+    "closed_cases": 22
+  },
+  "funnel": [
+    {
+      "stage": "At Risk",
+      "count": 750,
+      "revenue_paise": 84225000
+    },
+    {
+      "stage": "Diagnosed",
+      "count": 750,
+      "revenue_paise": 84225000
+    },
+    {
+      "stage": "Policy Approved",
+      "count": 553,
+      "revenue_paise": 63244700
+    },
+    {
+      "stage": "Recovery Planned",
+      "count": 553,
+      "revenue_paise": 63244700
+    },
+    {
+      "stage": "Recovered",
+      "count": 505,
+      "revenue_paise": 58349500
+    }
+  ],
+  "failure_reasons": [
+    {
+      "key": "INSUFFICIENT_FUNDS",
+      "label": "NSF",
+      "count": 341,
+      "revenue_paise": 36465900
+    },
+    {
+      "key": "CARD_EXPIRED",
+      "label": "Card Expired",
+      "count": 41,
+      "revenue_paise": 5095900
+    },
+    {
+      "key": "UPI_FAILURE",
+      "label": "UPI Failure",
+      "count": 148,
+      "revenue_paise": 16385200
+    },
+    {
+      "key": "MANDATE_REVOKED",
+      "label": "Mandate Revoked",
+      "count": 55,
+      "revenue_paise": 6294500
+    },
+    {
+      "key": "BANK_TIMEOUT",
+      "label": "Bank Downtime",
+      "count": 97,
+      "revenue_paise": 11490300
+    },
+    {
+      "key": "OTHER",
+      "label": "Other",
+      "count": 68,
+      "revenue_paise": 8493200
+    }
+  ],
+  "trend": [
+    {
+      "date": "2026-06-05",
+      "recovered_paise": 399700,
+      "recovered_count": 3,
+      "baseline_paise": 399700
+    },
+    {
+      "date": "2026-06-06",
+      "recovered_paise": 249800,
+      "recovered_count": 2,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-06-07",
+      "recovered_paise": 499500,
+      "recovered_count": 5,
+      "baseline_paise": 449600
+    },
+    {
+      "date": "2026-06-08",
+      "recovered_paise": 549500,
+      "recovered_count": 5,
+      "baseline_paise": 549500
+    },
+    {
+      "date": "2026-06-09",
+      "recovered_paise": 449600,
+      "recovered_count": 4,
+      "baseline_paise": 349700
+    },
+    {
+      "date": "2026-06-10",
+      "recovered_paise": 199800,
+      "recovered_count": 2,
+      "baseline_paise": 199800
+    },
+    {
+      "date": "2026-06-11",
+      "recovered_paise": 499700,
+      "recovered_count": 3,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-06-12",
+      "recovered_paise": 199800,
+      "recovered_count": 2,
+      "baseline_paise": 49900
+    },
+    {
+      "date": "2026-06-13",
+      "recovered_paise": 599400,
+      "recovered_count": 6,
+      "baseline_paise": 199700
+    },
+    {
+      "date": "2026-06-14",
+      "recovered_paise": 699400,
+      "recovered_count": 6,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-06-15",
+      "recovered_paise": 249700,
+      "recovered_count": 3,
+      "baseline_paise": 49900
+    },
+    {
+      "date": "2026-06-16",
+      "recovered_paise": 249700,
+      "recovered_count": 3,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-06-17",
+      "recovered_paise": 1149000,
+      "recovered_count": 10,
+      "baseline_paise": 299700
+    },
+    {
+      "date": "2026-06-18",
+      "recovered_paise": 1049100,
+      "recovered_count": 9,
+      "baseline_paise": 649600
+    },
+    {
+      "date": "2026-06-19",
+      "recovered_paise": 649300,
+      "recovered_count": 7,
+      "baseline_paise": 199700
+    },
+    {
+      "date": "2026-06-20",
+      "recovered_paise": 799100,
+      "recovered_count": 9,
+      "baseline_paise": 499500
+    },
+    {
+      "date": "2026-06-21",
+      "recovered_paise": 849300,
+      "recovered_count": 7,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-06-22",
+      "recovered_paise": 599300,
+      "recovered_count": 7,
+      "baseline_paise": 99900
+    },
+    {
+      "date": "2026-06-23",
+      "recovered_paise": 499500,
+      "recovered_count": 5,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-06-24",
+      "recovered_paise": 599300,
+      "recovered_count": 7,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-06-25",
+      "recovered_paise": 749400,
+      "recovered_count": 6,
+      "baseline_paise": 149900
+    },
+    {
+      "date": "2026-06-26",
+      "recovered_paise": 499600,
+      "recovered_count": 4,
+      "baseline_paise": 349800
+    },
+    {
+      "date": "2026-06-27",
+      "recovered_paise": 1049300,
+      "recovered_count": 7,
+      "baseline_paise": 699500
+    },
+    {
+      "date": "2026-06-28",
+      "recovered_paise": 1049000,
+      "recovered_count": 10,
+      "baseline_paise": 799400
+    },
+    {
+      "date": "2026-06-29",
+      "recovered_paise": 99900,
+      "recovered_count": 1,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-06-30",
+      "recovered_paise": 0,
+      "recovered_count": 0,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-07-01",
+      "recovered_paise": 1398700,
+      "recovered_count": 13,
+      "baseline_paise": 199700
+    },
+    {
+      "date": "2026-07-02",
+      "recovered_paise": 749600,
+      "recovered_count": 4,
+      "baseline_paise": 249900
+    },
+    {
+      "date": "2026-07-03",
+      "recovered_paise": 799300,
+      "recovered_count": 7,
+      "baseline_paise": 349600
+    },
+    {
+      "date": "2026-07-04",
+      "recovered_paise": 549600,
+      "recovered_count": 4,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-07-05",
+      "recovered_paise": 699500,
+      "recovered_count": 5,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-07-06",
+      "recovered_paise": 149900,
+      "recovered_count": 1,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-07-07",
+      "recovered_paise": 99900,
+      "recovered_count": 1,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-07-08",
+      "recovered_paise": 699300,
+      "recovered_count": 7,
+      "baseline_paise": 199800
+    },
+    {
+      "date": "2026-07-09",
+      "recovered_paise": 549500,
+      "recovered_count": 5,
+      "baseline_paise": 299800
+    },
+    {
+      "date": "2026-07-10",
+      "recovered_paise": 549600,
+      "recovered_count": 4,
+      "baseline_paise": 149800
+    },
+    {
+      "date": "2026-07-11",
+      "recovered_paise": 149900,
+      "recovered_count": 1,
+      "baseline_paise": 149900
+    },
+    {
+      "date": "2026-07-12",
+      "recovered_paise": 749200,
+      "recovered_count": 8,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-07-13",
+      "recovered_paise": 1598800,
+      "recovered_count": 12,
+      "baseline_paise": 849300
+    },
+    {
+      "date": "2026-07-14",
+      "recovered_paise": 599400,
+      "recovered_count": 6,
+      "baseline_paise": 99800
+    },
+    {
+      "date": "2026-07-15",
+      "recovered_paise": 999100,
+      "recovered_count": 9,
+      "baseline_paise": 149700
+    },
+    {
+      "date": "2026-07-16",
+      "recovered_paise": 1249100,
+      "recovered_count": 9,
+      "baseline_paise": 699400
+    },
+    {
+      "date": "2026-07-17",
+      "recovered_paise": 749300,
+      "recovered_count": 7,
+      "baseline_paise": 399600
+    },
+    {
+      "date": "2026-07-18",
+      "recovered_paise": 899200,
+      "recovered_count": 8,
+      "baseline_paise": 349700
+    },
+    {
+      "date": "2026-07-19",
+      "recovered_paise": 549600,
+      "recovered_count": 4,
+      "baseline_paise": 449700
+    },
+    {
+      "date": "2026-07-20",
+      "recovered_paise": 599400,
+      "recovered_count": 6,
+      "baseline_paise": 249600
+    },
+    {
+      "date": "2026-07-21",
+      "recovered_paise": 299600,
+      "recovered_count": 4,
+      "baseline_paise": 49900
+    },
+    {
+      "date": "2026-07-22",
+      "recovered_paise": 1049100,
+      "recovered_count": 9,
+      "baseline_paise": 799200
+    },
+    {
+      "date": "2026-07-23",
+      "recovered_paise": 699600,
+      "recovered_count": 4,
+      "baseline_paise": 349800
+    },
+    {
+      "date": "2026-07-24",
+      "recovered_paise": 499600,
+      "recovered_count": 4,
+      "baseline_paise": 549600
+    },
+    {
+      "date": "2026-07-25",
+      "recovered_paise": 899500,
+      "recovered_count": 5,
+      "baseline_paise": 799600
+    },
+    {
+      "date": "2026-07-26",
+      "recovered_paise": 899400,
+      "recovered_count": 6,
+      "baseline_paise": 399700
+    },
+    {
+      "date": "2026-07-27",
+      "recovered_paise": 899400,
+      "recovered_count": 6,
+      "baseline_paise": 349800
+    },
+    {
+      "date": "2026-07-28",
+      "recovered_paise": 399500,
+      "recovered_count": 5,
+      "baseline_paise": 349600
+    },
+    {
+      "date": "2026-07-29",
+      "recovered_paise": 99900,
+      "recovered_count": 1,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-07-30",
+      "recovered_paise": 249800,
+      "recovered_count": 2,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-07-31",
+      "recovered_paise": 99900,
+      "recovered_count": 1,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-08-01",
+      "recovered_paise": 999100,
+      "recovered_count": 9,
+      "baseline_paise": 49900
+    },
+    {
+      "date": "2026-08-02",
+      "recovered_paise": 599600,
+      "recovered_count": 4,
+      "baseline_paise": 599600
+    },
+    {
+      "date": "2026-08-03",
+      "recovered_paise": 949400,
+      "recovered_count": 6,
+      "baseline_paise": 349800
+    },
+    {
+      "date": "2026-08-04",
+      "recovered_paise": 549500,
+      "recovered_count": 5,
+      "baseline_paise": 149900
+    },
+    {
+      "date": "2026-08-05",
+      "recovered_paise": 1149100,
+      "recovered_count": 9,
+      "baseline_paise": 599600
+    },
+    {
+      "date": "2026-08-06",
+      "recovered_paise": 899200,
+      "recovered_count": 8,
+      "baseline_paise": 599400
+    },
+    {
+      "date": "2026-08-07",
+      "recovered_paise": 899200,
+      "recovered_count": 8,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-08-08",
+      "recovered_paise": 449500,
+      "recovered_count": 5,
+      "baseline_paise": 399500
+    },
+    {
+      "date": "2026-08-09",
+      "recovered_paise": 849300,
+      "recovered_count": 7,
+      "baseline_paise": 499700
+    },
+    {
+      "date": "2026-08-10",
+      "recovered_paise": 199700,
+      "recovered_count": 3,
+      "baseline_paise": 399600
+    },
+    {
+      "date": "2026-08-11",
+      "recovered_paise": 999100,
+      "recovered_count": 9,
+      "baseline_paise": 449500
+    },
+    {
+      "date": "2026-08-12",
+      "recovered_paise": 599500,
+      "recovered_count": 5,
+      "baseline_paise": 449600
+    },
+    {
+      "date": "2026-08-13",
+      "recovered_paise": 599500,
+      "recovered_count": 5,
+      "baseline_paise": 199800
+    },
+    {
+      "date": "2026-08-14",
+      "recovered_paise": 749300,
+      "recovered_count": 7,
+      "baseline_paise": 349700
+    },
+    {
+      "date": "2026-08-15",
+      "recovered_paise": 849400,
+      "recovered_count": 6,
+      "baseline_paise": 249800
+    },
+    {
+      "date": "2026-08-16",
+      "recovered_paise": 499400,
+      "recovered_count": 6,
+      "baseline_paise": 299600
+    },
+    {
+      "date": "2026-08-17",
+      "recovered_paise": 499500,
+      "recovered_count": 5,
+      "baseline_paise": 249700
+    },
+    {
+      "date": "2026-08-18",
+      "recovered_paise": 899200,
+      "recovered_count": 8,
+      "baseline_paise": 49900
+    },
+    {
+      "date": "2026-08-19",
+      "recovered_paise": 549500,
+      "recovered_count": 5,
+      "baseline_paise": 299700
+    },
+    {
+      "date": "2026-08-20",
+      "recovered_paise": 1249000,
+      "recovered_count": 10,
+      "baseline_paise": 649600
+    },
+    {
+      "date": "2026-08-21",
+      "recovered_paise": 849100,
+      "recovered_count": 9,
+      "baseline_paise": 549500
+    },
+    {
+      "date": "2026-08-22",
+      "recovered_paise": 599400,
+      "recovered_count": 6,
+      "baseline_paise": 649500
+    },
+    {
+      "date": "2026-08-23",
+      "recovered_paise": 1049300,
+      "recovered_count": 7,
+      "baseline_paise": 649500
+    },
+    {
+      "date": "2026-08-24",
+      "recovered_paise": 549700,
+      "recovered_count": 3,
+      "baseline_paise": 399800
+    },
+    {
+      "date": "2026-08-25",
+      "recovered_paise": 299600,
+      "recovered_count": 4,
+      "baseline_paise": 149800
+    },
+    {
+      "date": "2026-08-26",
+      "recovered_paise": 899300,
+      "recovered_count": 7,
+      "baseline_paise": 349600
+    },
+    {
+      "date": "2026-08-27",
+      "recovered_paise": 449600,
+      "recovered_count": 4,
+      "baseline_paise": 299800
+    },
+    {
+      "date": "2026-08-28",
+      "recovered_paise": 599600,
+      "recovered_count": 4,
+      "baseline_paise": 299800
+    },
+    {
+      "date": "2026-08-29",
+      "recovered_paise": 449600,
+      "recovered_count": 4,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-08-30",
+      "recovered_paise": 199800,
+      "recovered_count": 2,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-08-31",
+      "recovered_paise": 349600,
+      "recovered_count": 4,
+      "baseline_paise": 0
+    },
+    {
+      "date": "2026-09-01",
+      "recovered_paise": 948900,
+      "recovered_count": 11,
+      "baseline_paise": 449600
+    },
+    {
+      "date": "2026-09-02",
+      "recovered_paise": 1099100,
+      "recovered_count": 9,
+      "baseline_paise": 749500
+    }
+  ],
+  "health": {
+    "recovery_success_rate": 0.6928,
+    "cases_waiting": 48,
+    "cases_waiting_share": 0.064,
+    "escalated": 98,
+    "escalated_share": 0.13066666666666665,
+    "stopped": 77,
+    "stopped_share": 0.10266666666666667,
+    "promise_active": 15,
+    "promise_active_share": 0.02,
+    "total_cases": 750
+  },
+  "top_customers": [
+    {
+      "recovery_case_id": "33c80e07-3e48-57da-8caa-37f4f915e64e",
+      "customer_name": "Rajesh Mehta",
+      "customer_segment": "HIGH_VALUE",
+      "plan_name": "FitLife Pro",
+      "amount": 99900,
+      "diagnosis": "INSUFFICIENT_FUNDS",
+      "strategy": "Wait for payday",
+      "recovery_status": "WAITING_PROMISE",
+      "priority_score": 0.96,
+      "failed_at": "2026-09-02T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "76477641-a752-59e8-b3aa-52758b68fea0",
+      "customer_name": "Meera Menon",
+      "customer_segment": "HIGH_VALUE",
+      "plan_name": "FitLife Pro",
+      "amount": 99900,
+      "diagnosis": "INSUFFICIENT_FUNDS",
+      "strategy": "Wait for payday",
+      "recovery_status": "WAITING_PROMISE",
+      "priority_score": 0.96,
+      "failed_at": "2026-08-26T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "1e495e75-5a7d-5939-b976-98be6e657321",
+      "customer_name": "Varun Joshi",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Premium",
+      "amount": 249900,
+      "diagnosis": "UNKNOWN",
+      "strategy": "Diagnose and retry",
+      "recovery_status": "WAITING_RETRY",
+      "priority_score": 0.82,
+      "failed_at": "2026-07-24T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "e88bb6b8-2b13-543e-b769-b4e4f63394d7",
+      "customer_name": "Arjun Reddy",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Elite",
+      "amount": 149900,
+      "diagnosis": "INSUFFICIENT_FUNDS",
+      "strategy": "Wait for payday",
+      "recovery_status": "WAITING_PROMISE",
+      "priority_score": 0.8,
+      "failed_at": "2026-08-28T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "9254f652-0752-5f04-8434-c1b12254cf10",
+      "customer_name": "Ananya Mehta",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Elite",
+      "amount": 149900,
+      "diagnosis": "UNKNOWN",
+      "strategy": "Diagnose and retry",
+      "recovery_status": "WAITING_RETRY",
+      "priority_score": 0.8,
+      "failed_at": "2026-06-23T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "b8d4bc8d-1c1b-56bc-9f72-9ca21523d923",
+      "customer_name": "Zoya Murthy",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Pro",
+      "amount": 99900,
+      "diagnosis": "UNKNOWN",
+      "strategy": "Diagnose and retry",
+      "recovery_status": "WAITING_RETRY",
+      "priority_score": 0.78,
+      "failed_at": "2026-08-23T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "96a78ba4-ae5f-5d06-97af-5d68c71770c1",
+      "customer_name": "Uday Bhat",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Pro",
+      "amount": 99900,
+      "diagnosis": "INSUFFICIENT_FUNDS",
+      "strategy": "Wait for payday",
+      "recovery_status": "WAITING_PROMISE",
+      "priority_score": 0.78,
+      "failed_at": "2026-09-01T07:12:00+05:30"
+    },
+    {
+      "recovery_case_id": "7f167c19-bc1c-5b97-ab61-8e21051397d8",
+      "customer_name": "Kavya Shetty",
+      "customer_segment": "LOYAL",
+      "plan_name": "FitLife Pro",
+      "amount": 99900,
+      "diagnosis": "INSUFFICIENT_FUNDS",
+      "strategy": "Wait for payday",
+      "recovery_status": "WAITING_PROMISE",
+      "priority_score": 0.78,
+      "failed_at": "2026-08-28T07:12:00+05:30"
+    }
+  ],
+  "activity": [
+    {
+      "event_type": "PAYMENT_CAPTURED",
+      "summary": "Retry captured",
+      "timestamp": "2026-09-02T15:15:00+05:30",
+      "actor": "Recovery Executor",
+      "recovery_case_id": "9799ee6a-eb74-5153-814b-0509db6787ac"
+    },
+    {
+      "event_type": "PAYMENT_LINK_SENT",
+      "summary": "Payment link sent",
+      "timestamp": "2026-09-02T13:24:00+05:30",
+      "actor": "Recovery Executor",
+      "recovery_case_id": "5e949a3e-7f19-5abb-be7c-3e523cb2a914"
+    },
+    {
+      "event_type": "ACTION_SCHEDULED",
+      "summary": "Bounded recovery retry scheduled",
+      "timestamp": "2026-09-02T08:10:00+05:30",
+      "actor": "Scheduler",
+      "recovery_case_id": "33999fae-d810-5662-bf22-7d6e311d3cb5"
+    },
+    {
+      "event_type": "POLICY_EVALUATED",
+      "summary": "Allow bounded recovery",
+      "timestamp": "2026-09-02T07:54:00+05:30",
+      "actor": "Policy Engine",
+      "recovery_case_id": "33999fae-d810-5662-bf22-7d6e311d3cb5"
+    },
+    {
+      "event_type": "PROMISE_RECORDED",
+      "summary": "Customer promised 99900 paise on 2026-09-08",
+      "timestamp": "2026-09-02T07:39:00+05:30",
+      "actor": "Customer",
+      "recovery_case_id": "33c80e07-3e48-57da-8caa-37f4f915e64e"
+    },
+    {
+      "event_type": "CASE_OPENED",
+      "summary": "Opened recovery for failed pay_d2a62f316fec2c",
+      "timestamp": "2026-09-02T07:13:00+05:30",
+      "actor": "Razorpay Webhook",
+      "recovery_case_id": "5e949a3e-7f19-5abb-be7c-3e523cb2a914"
+    },
+    {
+      "event_type": "RECOVERY_STOPPED",
+      "summary": "Stopping rules: do not chase revoked/cancelled mandates",
+      "timestamp": "2026-09-01T07:45:00+05:30",
+      "actor": "Policy Engine",
+      "recovery_case_id": "ff8c9a11-7665-5394-b563-f9fcd96f23da"
+    }
+  ]
+}

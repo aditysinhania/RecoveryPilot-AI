@@ -1,1 +1,82 @@
 @import "tailwindcss";
+
+@theme {
+  --color-canvas: #09090b;
+  --color-canvas-muted: #0f1116;
+  --color-surface: #18181b;
+  --color-surface-raised: #1f1f23;
+  --color-surface-hover: #27272a;
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
+  --color-muted: #a1a1aa;
+  --color-foreground: #f4f4f5;
+  --color-recovered: #34d399;
+  --color-recovered-muted: #064e3b;
+  --color-waiting: #fb923c;
+  --color-waiting-muted: #7c2d12;
+  --color-blocked: #f87171;
+  --color-blocked-muted: #7f1d1d;
+  --color-ai: #c084fc;
+  --color-ai-muted: #4c1d95;
+  --color-info: #38bdf8;
+  --color-info-muted: #0c4a6e;
+  --font-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 32px rgb(0 0 0 / 0.28);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.rp-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #52525b #18181b;
+}
+
+.rp-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.rp-scroll::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 999px;
+}
+
+.rp-scroll::-webkit-scrollbar-thumb {
+  background: #52525b;
+  border-radius: 999px;
+}
+
+.rp-scroll::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}
+
+.rp-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
