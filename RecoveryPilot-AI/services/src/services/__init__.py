@@ -33,6 +33,11 @@ from services.merchant_service import (
     list_payments,
     require_merchant,
 )
+from services.planner_service import (
+    plan_batch,
+    plan_case,
+    summarize_plans,
+)
 from services.policy_service import (
     evaluate_batch,
     evaluate_case,
@@ -91,7 +96,10 @@ __all__ = [
     "list_payments",
     "parse_audit_filters",
     "parse_queue_filters",
+    "plan_batch",
+    "plan_case",
     "require_merchant",
     "summarize_decisions",
+    "summarize_plans",
     "summarize_results",
 ]
