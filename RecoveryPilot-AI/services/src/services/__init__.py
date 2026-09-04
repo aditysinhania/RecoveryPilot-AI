@@ -33,6 +33,11 @@ from services.merchant_service import (
     list_payments,
     require_merchant,
 )
+from services.policy_service import (
+    evaluate_batch,
+    evaluate_case,
+    summarize_decisions,
+)
 from services.recovery_service import (
     QueueFilters,
     QueuePageResult,
@@ -70,6 +75,8 @@ __all__ = [
     "diagnose_batch",
     "diagnose_case",
     "diagnose_payment",
+    "evaluate_batch",
+    "evaluate_case",
     "get_audit_events",
     "get_case_audit_timeline",
     "get_correlation_trace",
@@ -85,5 +92,6 @@ __all__ = [
     "parse_audit_filters",
     "parse_queue_filters",
     "require_merchant",
+    "summarize_decisions",
     "summarize_results",
 ]
