@@ -31,6 +31,13 @@ def validate_environment(settings: Settings) -> None:
     if settings.app_env not in ALLOWED_ENVIRONMENTS:
         allowed = ", ".join(sorted(ALLOWED_ENVIRONMENTS))
         raise ConfigurationError(f"APP_ENV must be one of: {allowed}")
+    if settings.is_production and (
+        not settings.jwt_secret.strip()
+        or settings.jwt_secret.strip()
+        in {"dev-only-change-me", "local-dev-jwt-secret-change-me-32b!!"}
+        or len(settings.jwt_secret.encode("utf-8")) < 32
+    ):
+        raise ConfigurationError("JWT_SECRET must be set to a strong value in staging/production")
     logger.info(
         "config.validate.ok",
         extra={"app_env": settings.app_env, "api_version": settings.api_version},

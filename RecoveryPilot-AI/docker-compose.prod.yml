@@ -53,6 +53,10 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       APP_VERSION: ${APP_VERSION:-0.1.0}
       BUILD_SHA: ${BUILD_SHA:-dev}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_MINUTES: "15"
+      JWT_REFRESH_DAYS: "7"
       ACTION_SCHEDULER_ENABLED: "true"
     depends_on:
       postgres:

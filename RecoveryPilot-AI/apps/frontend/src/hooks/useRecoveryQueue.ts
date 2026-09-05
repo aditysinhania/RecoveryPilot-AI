@@ -12,6 +12,8 @@ export function useRecoveryQueue(query: QueueQuery) {
       query.pageSize,
       query.sortKey,
       query.sortDir,
+      query.simulatorOnly ?? false,
+      query.emptyWorkspace ?? false,
     ],
     queryFn: () => fetchRecoveryQueue(query),
     staleTime: 20_000,

@@ -26,9 +26,11 @@ export function AnalyticsKpiRow({ kpis }: AnalyticsKpiRowProps) {
         icon={<Wallet size={16} />}
       />
       <StatCard
-        label="Recovery rate"
+        label="Revenue Recovery Rate"
         value={kpis.recovery_rate}
         format={(n) => formatPercent(n)}
+        hint="Recovered revenue ÷ revenue at risk"
+        title="Merchant metrics: recovered revenue divided by revenue at risk"
         tone="recovered"
         icon={<TrendingUp size={16} />}
       />

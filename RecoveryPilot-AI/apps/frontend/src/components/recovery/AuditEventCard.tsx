@@ -28,11 +28,12 @@ export function AuditEventCard({ event }: AuditEventCardProps) {
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-foreground">{event.summary}</p>
           <p className="mt-0.5 text-[11px] text-muted">
-            {formatDateTime(event.timestamp)} · {event.actor}
+            {formatDateTime(event.created_at ?? event.timestamp)} · {event.actor}
             {event.actor_type ? ` · ${event.actor_type}` : ""}
+            {event.status ? ` · ${event.status}` : ""}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
-            {Boolean(event.details?.replay || event.details?.webhook_replay) ? (
+            {Boolean(event.details?.replay || event.details?.webhook_replay || event.metadata?.replay || event.metadata?.webhook_replay) ? (
               <span className="rounded-full bg-info-muted px-2 py-0.5 text-[10px] font-medium text-info">
                 Webhook replay
               </span>
@@ -67,7 +68,7 @@ export function AuditEventCard({ event }: AuditEventCardProps) {
           >
             {jsonOpen ? "Hide JSON payload" : "Expand JSON payload"}
           </button>
-          {jsonOpen ? <JsonHighlight value={event.details} /> : null}
+          {jsonOpen ? <JsonHighlight value={event.metadata ?? event.details} /> : null}
         </div>
       ) : null}
     </article>

@@ -18,6 +18,7 @@ interface StatCardProps {
   value: number;
   format: (n: number) => string;
   hint?: string;
+  title?: string;
   tone?: StatTone;
   icon?: ReactNode;
 }
@@ -28,6 +29,7 @@ export function StatCard({
   value,
   format,
   hint,
+  title,
   tone = "info",
   icon,
 }: StatCardProps) {
@@ -36,7 +38,8 @@ export function StatCard({
     <motion.article
       {...fadeUp}
       {...cardHover}
-      className="rounded-xl border border-border bg-surface p-3 shadow-[var(--shadow-card)]"
+      title={title}
+      className="rp-glow-border rounded-xl border border-border bg-surface p-3 shadow-[var(--shadow-card)]"
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>

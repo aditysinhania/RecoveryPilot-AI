@@ -20,8 +20,10 @@ export function useAnalytics() {
     pageSize: 100,
     sortKey: "amount",
     sortDir: "desc",
+    simulatorOnly: ctx.isDemo,
+    emptyWorkspace: ctx.emptyWorkspace,
   });
-  const rows = queueQuery.data?.page.items ?? SNAPSHOT_QUEUE;
+  const rows = ctx.emptyWorkspace ? [] : (queueQuery.data?.page.items ?? SNAPSHOT_QUEUE);
   const model = useMemo(
     () => assembleAnalytics(ctx.view, rows, ctx.fullTrend, range),
     [ctx.view, ctx.fullTrend, rows, range],
@@ -30,8 +32,8 @@ export function useAnalytics() {
     range,
     setRange,
     model,
-    isLoading: ctx.isLoading,
-    isError: ctx.isError || queueQuery.isError,
+    isLoading: ctx.emptyWorkspace ? false : ctx.isLoading,
+    isError: ctx.emptyWorkspace || ctx.isDemo ? false : ctx.isError || queueQuery.isError,
     isFetching: ctx.isFetching || queueQuery.isFetching,
     refetch: (): void => {
       void ctx.refetch();

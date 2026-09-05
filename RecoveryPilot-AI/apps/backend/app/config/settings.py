@@ -29,10 +29,10 @@ class Settings(BaseSettings):
     api_version: str = "v1"
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174"
     trusted_hosts: str = "localhost,127.0.0.1,testserver,backend,nginx,frontend"
     database_url: str = (
-        "postgresql+psycopg://recoverypilot:recoverypilot@localhost:5432/recoverypilot"
+        "postgresql+psycopg://recoverypilot:recoverypilot@127.0.0.1:5432/recoverypilot"
     )
     db_echo: bool = False
     db_pool_size: int = POOL_SIZE
@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     redis_url: str = ""
     app_version: str = "0.1.0"
     build_sha: str = "dev"
+    jwt_secret: str = "local-dev-jwt-secret-change-me-32b!!"
+    jwt_algorithm: str = "HS256"
+    jwt_access_minutes: int = 15
+    jwt_refresh_days: int = 7
 
     @field_validator("app_env")
     @classmethod

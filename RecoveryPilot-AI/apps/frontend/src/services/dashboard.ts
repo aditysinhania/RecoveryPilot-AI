@@ -176,6 +176,61 @@ function snapshotOrchestrator(): DashboardView["orchestrator"] {
   };
 }
 
+/** Zeroed merchant view so empty workspaces never fall back to FitLife charts. */
+export function emptyDashboardView(merchant: MerchantOption, lastSyncedAt: string): DashboardView {
+  return {
+    merchant,
+    environment: environmentLabel(),
+    dataSource: "live",
+    lastSyncedAt,
+    kpis: {
+      revenue_at_risk: 0,
+      recovered_by_ai: 0,
+      recovery_rate: 0,
+      ai_lift: 0,
+      pending_recovery_value: 0,
+      cases_waiting: 0,
+    },
+    orchestrator: {
+      scheduled_actions_today: 0,
+      payment_links_sent: 0,
+      successful_retries: 0,
+      failed_deliveries: 0,
+      active_scheduler_queue: 0,
+      scheduler_queue: { scheduled: 0, running: 0, delayed: 0, dead_letter: 0 },
+    },
+    funnel: [],
+    trend: [],
+    failureReasons: [],
+    lift: {
+      recovered_by_ai: 0,
+      recovered_by_baseline: 0,
+      extra_revenue: 0,
+      harmful_retries_prevented: 0,
+      communication_cost_saved: 0,
+      ai_outreach_paise: 0,
+      baseline_outreach_paise: 0,
+      ai_rate: 0,
+      baseline_rate: 0,
+    },
+    health: {
+      recovery_success_rate: 0,
+      cases_waiting: 0,
+      cases_waiting_share: 0,
+      escalated: 0,
+      escalated_share: 0,
+      stopped: 0,
+      stopped_share: 0,
+      promise_active: 0,
+      promise_active_share: 0,
+      total_cases: 0,
+    },
+    insights: [],
+    activity: [],
+    topCustomers: [],
+  };
+}
+
 function snapshotView(lastSyncedAt: string): DashboardView {
   const merchant: MerchantOption = {
     id: SNAPSHOT.merchant.list_id,

@@ -1,6 +1,7 @@
 """ORM models for RecoveryPilot AI. Import this package so Alembic sees all tables."""
 
 from database.models.audit_log import AuditLog
+from database.models.auth_session import AuthSession
 from database.models.base import Base
 from database.models.customer import Customer
 from database.models.enums import (
@@ -22,6 +23,8 @@ from database.models.enums import (
 )
 from database.models.merchant import Merchant
 from database.models.merchant_metric import MerchantMetric
+from database.models.merchant_settings import MerchantSettings
+from database.models.merchant_user import MerchantUser
 from database.models.payment import Payment
 from database.models.promise_to_pay import PromiseToPay
 from database.models.recovery_action import RecoveryAction
@@ -34,6 +37,7 @@ __all__ = [
     "ActorType",
     "AuditEventType",
     "AuditLog",
+    "AuthSession",
     "Base",
     "BillingFrequency",
     "ConsentStatus",
@@ -44,6 +48,8 @@ __all__ = [
     "MandateStatus",
     "Merchant",
     "MerchantMetric",
+    "MerchantSettings",
+    "MerchantUser",
     "Payment",
     "PaymentMethod",
     "PaymentStatus",

@@ -30,6 +30,7 @@ import {
 import type { RecoverySummary } from "@/types/dashboard";
 import type {
   AuditEvent,
+  CaseAuditEvent,
   CaseDrawerModel,
   PolicyRow,
   QueuePage,
@@ -51,6 +52,10 @@ export interface QueueQuery {
   pageSize: number;
   sortKey: QueueSortKey;
   sortDir: "asc" | "desc";
+  /** Pin FitLife snapshot without hitting live queue APIs. */
+  simulatorOnly?: boolean;
+  /** Return zeros instead of the seed-42 catalog. */
+  emptyWorkspace?: boolean;
 }
 
 function compareRows(a: QueueRow, b: QueueRow, key: QueueSortKey, dir: "asc" | "desc"): number {
@@ -142,12 +147,56 @@ function snapshotFiltered(filters: RecoveryQueueFilters): QueueRow[] {
   return applyClientFilters(SNAPSHOT_QUEUE, filters);
 }
 
+const EMPTY_SUMMARY: RecoveryQueueSummary = {
+  open_cases: 0,
+  recovered_cases: 0,
+  stopped_cases: 0,
+  escalated_cases: 0,
+  waiting_retry: 0,
+  waiting_promise: 0,
+  total_revenue_at_risk: 0,
+  recovered_revenue: 0,
+  recovery_rate: 0,
+  recovered_today: 0,
+};
+
+function snapshotQueueResult(query: QueueQuery): {
+  page: QueuePage;
+  summary: RecoveryQueueSummary;
+  source: "live" | "simulator";
+} {
+  const sorted = [...snapshotFiltered(query.filters)].sort((a, b) =>
+    compareRows(a, b, query.sortKey, query.sortDir),
+  );
+  const summary = hasActiveFilters(query.filters)
+    ? chipsFromRows(sorted, SNAPSHOT_SUMMARY)
+    : {
+        ...SNAPSHOT_SUMMARY,
+        recovered_today: chipsFromRows(sorted, SNAPSHOT_SUMMARY).recovered_today,
+      };
+  return {
+    page: paginate(sorted, query.page, query.pageSize, "simulator"),
+    summary,
+    source: "simulator",
+  };
+}
+
 /** Load the recovery queue. Live APIs overlay the FitLife seed-42 catalog. */
 export async function fetchRecoveryQueue(query: QueueQuery): Promise<{
   page: QueuePage;
   summary: RecoveryQueueSummary;
   source: "live" | "simulator";
 }> {
+  if (query.emptyWorkspace) {
+    return {
+      page: { ...emptyQueuePage(query.pageSize), source: "live" },
+      summary: EMPTY_SUMMARY,
+      source: "live",
+    };
+  }
+  if (query.simulatorOnly) {
+    return snapshotQueueResult(query);
+  }
   try {
     const envelope = await getPage<RecoveryQueueItem>(
       serverQuery(query.filters, query.merchantId, 1, 100),
@@ -193,20 +242,7 @@ export async function fetchRecoveryQueue(query: QueueQuery): Promise<{
       source: "live",
     };
   } catch {
-    const sorted = [...snapshotFiltered(query.filters)].sort((a, b) =>
-      compareRows(a, b, query.sortKey, query.sortDir),
-    );
-    const summary = hasActiveFilters(query.filters)
-      ? chipsFromRows(sorted, SNAPSHOT_SUMMARY)
-      : {
-          ...SNAPSHOT_SUMMARY,
-          recovered_today: chipsFromRows(sorted, SNAPSHOT_SUMMARY).recovered_today,
-        };
-    return {
-      page: paginate(sorted, query.page, query.pageSize, "simulator"),
-      summary,
-      source: "simulator",
-    };
+    return snapshotQueueResult(query);
   }
 }
 
@@ -315,31 +351,50 @@ function enrichCase(
   };
 }
 
+function mapCaseAuditEvent(row: CaseAuditEvent): AuditEvent {
+  const metadata = row.metadata ?? {};
+  const summary = String(metadata.event_summary ?? row.event_type);
+  const actorType = typeof metadata.actor_type === "string" ? metadata.actor_type : null;
+  const policy =
+    typeof metadata.policy_decision === "string"
+      ? metadata.policy_decision
+      : row.status && ["ALLOW", "BLOCK", "DENY", "ESCALATE", "STOP"].includes(row.status)
+        ? row.status
+        : null;
+  return {
+    event_id: row.event_id,
+    event_type: row.event_type,
+    actor: row.actor,
+    actor_type: actorType,
+    timestamp: row.created_at,
+    created_at: row.created_at,
+    summary,
+    request_id: row.request_id,
+    correlation_id: row.correlation_id,
+    policy_decision: policy,
+    status: row.status,
+    metadata,
+    details: metadata,
+  };
+}
+
 async function loadAudit(recoveryCaseId: string): Promise<AuditEvent[]> {
-  try {
-    const timeline = await getData<{ events?: AuditEvent[] }>(`/audit/cases/${recoveryCaseId}`, FETCH_MS);
-    if (timeline.events?.length) {
-      return timeline.events;
-    }
-  } catch {
-    /* fall through to the events explorer */
-  }
-  const page = await getPage<AuditEvent>(
-    `/audit/events?recovery_case_id=${encodeURIComponent(recoveryCaseId)}&page=1&page_size=50`,
+  const rows = await getData<CaseAuditEvent[]>(
+    `/recovery/cases/${encodeURIComponent(recoveryCaseId)}/audit`,
     FETCH_MS,
   );
-  return page.data ?? [];
+  return (rows ?? []).map(mapCaseAuditEvent);
 }
 
 /** Lazy-load one case drawer. Cached by recovery_case_id in TanStack Query. */
 export async function fetchRecoveryCase(recoveryCaseId: string): Promise<CaseDrawerModel> {
   try {
-    const [detail, timeline, policyRows] = await Promise.all([
+    const [detail, timeline, policyRows, audit] = await Promise.all([
       getData<RecoveryCaseDetail>(`/recovery/cases/${recoveryCaseId}`, FETCH_MS),
       getData<TimelineEvent[]>(`/recovery/cases/${recoveryCaseId}/timeline`, FETCH_MS),
       getData<PolicyRow[]>(`/audit/cases/${recoveryCaseId}/policy`, FETCH_MS).catch(() => []),
+      loadAudit(recoveryCaseId).catch(() => []),
     ]);
-    const audit = await loadAudit(recoveryCaseId).catch(() => []);
     const model = enrichCase(detail, timeline ?? [], audit, policyRows ?? [], "live");
     try {
       const status = await fetchActionStatus(recoveryCaseId);

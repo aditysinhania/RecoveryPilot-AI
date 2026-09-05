@@ -10,7 +10,11 @@ import {
 import type { AuditFilters } from "@/types/audit";
 
 /** Explorer state: filters, page, KPI strip, and optional correlation replay. */
-export function useAuditTimeline(initial: Partial<AuditFilters> = {}) {
+export function useAuditTimeline(
+  initial: Partial<AuditFilters> = {},
+  options: { enabled?: boolean } = {},
+) {
+  const enabled = options.enabled ?? true;
   const [filters, setFilters] = useState<AuditFilters>({ ...EMPTY_AUDIT_FILTERS, ...initial });
   const [page, setPage] = useState(1);
   const [inspectId, setInspectId] = useState(initial.correlationId?.trim() ?? "");
@@ -20,6 +24,7 @@ export function useAuditTimeline(initial: Partial<AuditFilters> = {}) {
     queryFn: () => fetchAuditPage(filters, page),
     staleTime: 20_000,
     retry: 0,
+    enabled,
     placeholderData: (previous) => previous,
   });
 
@@ -28,13 +33,14 @@ export function useAuditTimeline(initial: Partial<AuditFilters> = {}) {
     queryFn: fetchAuditKpis,
     staleTime: 60_000,
     retry: 0,
+    enabled,
   });
 
   const replayId = inspectId.trim();
   const replayQuery = useQuery({
     queryKey: ["audit-correlation", replayId],
     queryFn: () => fetchCorrelationReplay(replayId),
-    enabled: replayId.length > 0,
+    enabled: enabled && replayId.length > 0,
     staleTime: 30_000,
     retry: 0,
   });
@@ -59,7 +65,7 @@ export function useAuditTimeline(initial: Partial<AuditFilters> = {}) {
     kpiSource: kpisQuery.data?.source ?? "simulator",
     insights,
     replay: replayQuery.data ?? null,
-    isLoading: eventsQuery.isPending && !eventsQuery.data,
+    isLoading: enabled && eventsQuery.isPending && !eventsQuery.data,
     isError: Boolean(eventsQuery.isError && eventsQuery.data?.source !== "live"),
     isFetching: eventsQuery.isFetching || kpisQuery.isFetching,
     replayLoading: replayQuery.isFetching,

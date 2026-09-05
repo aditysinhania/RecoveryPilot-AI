@@ -30,10 +30,13 @@ ALLOWED_ENVIRONMENTS: frozenset[str] = frozenset(
 OPENAPI_TAGS: list[dict[str, str]] = [
     {"name": "Health", "description": "Liveness (/live) and readiness (/ready) probes."},
     {"name": "Merchants", "description": "Read-only merchant dashboard APIs."},
-    {"name": "Recovery", "description": "Read-only recovery queue, case, timeline, and summary APIs."},
+    {"name": "Recovery", "description": "Read-only recovery queue, case, timeline, audit, and summary APIs."},
     {"name": "Audit", "description": "Compliance replay, event explorer, correlation and policy traces."},
     {"name": "Simulator", "description": "Batch simulator placeholders."},
     {"name": "Actions", "description": "Recovery action orchestrator (Razorpay Sandbox, mock comms)."},
     {"name": "Webhooks", "description": "Inbound Razorpay webhooks (signature verify, inbox, orchestrator dispatch)."},
     {"name": "Operations", "description": "Production health snapshot for the Operations Status page."},
+    {"name": "Auth", "description": "JWT signup, login, refresh, logout, and current user."},
+    {"name": "Onboarding", "description": "Four-step merchant workspace setup."},
+    {"name": "Account", "description": "Settings: profile, Razorpay, Gemini, notifications, security."},
 ]

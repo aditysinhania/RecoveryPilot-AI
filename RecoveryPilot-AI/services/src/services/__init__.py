@@ -12,6 +12,7 @@ from services.audit_service import (
     get_case_audit_timeline,
     get_correlation_trace,
     get_policy_decisions,
+    list_case_audit_events,
     parse_audit_filters,
 )
 from services.diagnosis_service import (
@@ -115,6 +116,7 @@ __all__ = [
     "get_recovery_summary",
     "get_recovery_timeline",
     "get_summary",
+    "list_case_audit_events",
     "list_failures",
     "list_payments",
     "parse_audit_filters",

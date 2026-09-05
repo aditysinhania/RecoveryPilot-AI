@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+_DB_UNAVAILABLE = (
+    "Can't reach PostgreSQL. Start it with docker compose up postgres, then try again."
+)
+_AUTH_SCHEMA_MISSING = (
+    "Auth tables are missing. Start PostgreSQL and restart the API so "
+    "merchant_users and auth_sessions can be created."
+)
+
 
 class ApplicationException(Exception):
     """Base error for RecoveryPilot API handlers."""
@@ -19,11 +27,30 @@ class ApplicationException(Exception):
         self.status_code = status_code
 
 
+_DB_UNAVAILABLE = (
+    "Can't reach PostgreSQL. Start it with docker compose up postgres, then try again."
+)
+_AUTH_SCHEMA_MISSING = (
+    "Auth tables are missing. Start PostgreSQL and restart the API so "
+    "merchant_users and auth_sessions can be created."
+)
+
+
 class DatabaseUnavailableError(ApplicationException):
     """PostgreSQL is unreachable or the session cannot be opened."""
 
-    def __init__(self, message: str = "PostgreSQL is unavailable") -> None:
-        super().__init__(message, code="database_unavailable", status_code=503)
+    def __init__(
+        self,
+        message: str = _DB_UNAVAILABLE,
+        *,
+        code: str = "database_unavailable",
+    ) -> None:
+        super().__init__(message, code=code, status_code=503)
+
+
+def auth_schema_missing_error() -> DatabaseUnavailableError:
+    """503 when merchant_users / auth_sessions have not been created."""
+    return DatabaseUnavailableError(_AUTH_SCHEMA_MISSING, code="auth_schema_missing")
 
 
 class MerchantNotFoundError(ApplicationException):
@@ -80,6 +107,27 @@ class ActionNotFoundError(ApplicationException):
 
     def __init__(self, message: str = "Action execution not found") -> None:
         super().__init__(message, code="action_execution_not_found", status_code=404)
+
+
+class UnauthorizedError(ApplicationException):
+    """Missing or invalid bearer token."""
+
+    def __init__(self, message: str = "Authentication required") -> None:
+        super().__init__(message, code="unauthorized", status_code=401)
+
+
+class InvalidCredentialsError(ApplicationException):
+    """Login failed. Message is generic so emails are not enumerated."""
+
+    def __init__(self, message: str = "Invalid email or password") -> None:
+        super().__init__(message, code="invalid_credentials", status_code=401)
+
+
+class ConflictError(ApplicationException):
+    """Unique constraint, typically a taken email."""
+
+    def __init__(self, message: str = "Resource already exists", *, code: str = "conflict") -> None:
+        super().__init__(message, code=code, status_code=409)
 
 
 class InvalidWebhookSignatureError(ApplicationException):

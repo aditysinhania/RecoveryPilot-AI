@@ -588,6 +588,9 @@ def get_recovery_summary(
 ) -> RecoverySummaryTotals:
     """Return live case counts and revenue totals.
 
+    ``open_cases`` is WAITING_RETRY + WAITING_PROMISE + ESCALATED (active
+    work). RECOVERED, STOPPED, and CLOSED counts are not folded into it.
+
     Args:
         db: Request-scoped SQLAlchemy session.
         merchant_id: Optional tenant scope.
@@ -609,7 +612,11 @@ def get_recovery_summary(
     denominator = at_risk + recovered
     rate = round(recovered / denominator, 4) if denominator else 0.0
     result = RecoverySummaryTotals(
-        open_cases=counts[RecoveryStatus.OPEN],
+        open_cases=(
+            counts[RecoveryStatus.WAITING_RETRY]
+            + counts[RecoveryStatus.WAITING_PROMISE]
+            + counts[RecoveryStatus.ESCALATED]
+        ),
         recovered_cases=counts[RecoveryStatus.RECOVERED],
         stopped_cases=counts[RecoveryStatus.STOPPED],
         escalated_cases=counts[RecoveryStatus.ESCALATED],

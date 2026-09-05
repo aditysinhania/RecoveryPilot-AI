@@ -16,12 +16,14 @@ from app.core.exceptions import (
     RecoveryNotFoundError,
 )
 from app.schemas.recovery import (
+    RecoveryCaseAuditEvent,
     RecoveryCaseResponse,
     RecoveryQueueItem,
     RecoverySummaryResponse,
     RecoveryTimelineEvent,
     TimelineEventType,
 )
+from services.audit_service import list_case_audit_events as load_case_audit
 from services.recovery_service import InvalidDateRangeError as DomainDateRangeError
 from services.recovery_service import InvalidFilterError as DomainFilterError
 from services.recovery_service import RecoveryCaseNotFoundError as DomainCaseNotFound
@@ -239,3 +241,31 @@ def get_recovery_summary(
         recovered_revenue=totals.recovered_revenue,
         recovery_rate=totals.recovery_rate,
     )
+
+
+def get_case_audit_events(
+    db: Session, recovery_case_id: UUID
+) -> list[RecoveryCaseAuditEvent]:
+    """Return ``audit_logs`` for a case, newest first. Empty list if none exist.
+
+    Args:
+        db: Request-scoped SQLAlchemy session.
+        recovery_case_id: Case whose trail is listed.
+
+    Returns:
+        Audit DTOs. Unknown ids yield ``[]``, not 404.
+    """
+    rows = load_case_audit(db, recovery_case_id)
+    return [
+        RecoveryCaseAuditEvent(
+            event_id=row.event_id,
+            event_type=row.event_type,
+            actor=row.actor,
+            status=row.status,
+            request_id=row.request_id,
+            correlation_id=row.correlation_id,
+            metadata=row.metadata,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]

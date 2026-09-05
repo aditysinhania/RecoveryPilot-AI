@@ -106,7 +106,21 @@ class RecoverySummaryResponse(BaseModel):
     recovery_rate: float = 0.0
 
 
+class RecoveryCaseAuditEvent(BaseModel):
+    """One ``audit_logs`` row for a recovery case, newest-first listings."""
+
+    event_id: UUID
+    event_type: str
+    actor: str
+    status: str
+    request_id: str
+    correlation_id: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
 __all__ = [
+    "RecoveryCaseAuditEvent",
     "RecoveryCaseResponse",
     "RecoveryQueueItem",
     "RecoverySummaryResponse",

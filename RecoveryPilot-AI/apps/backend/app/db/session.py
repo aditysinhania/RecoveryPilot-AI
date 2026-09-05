@@ -6,11 +6,13 @@ from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config.constants import POOL_RECYCLE_SECONDS
 from app.config.logging import get_logger
 from app.config.settings import settings
+from app.core.exceptions import DatabaseUnavailableError, auth_schema_missing_error
 
 logger = get_logger(__name__)
 
@@ -60,10 +62,24 @@ def SessionLocal() -> Session:
 
 
 def get_db() -> Generator[Session, None, None]:
-    """Yield a request-scoped SQLAlchemy session."""
-    session = SessionLocal()
+    """Yield a request-scoped SQLAlchemy session.
+
+    Connection timeouts and missing-schema errors become HTTP 503 with a
+    merchant-facing message instead of an unhandled 500.
+    """
+    try:
+        session = SessionLocal()
+    except OperationalError as exc:
+        logger.warning("db.operational", extra={"error_type": type(exc).__name__})
+        raise DatabaseUnavailableError() from exc
     try:
         yield session
+    except OperationalError as exc:
+        logger.warning("db.operational", extra={"error_type": type(exc).__name__})
+        raise DatabaseUnavailableError() from exc
+    except ProgrammingError as exc:
+        logger.warning("db.schema_missing", extra={"error_type": type(exc).__name__})
+        raise auth_schema_missing_error() from exc
     finally:
         session.close()
 

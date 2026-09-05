@@ -16,7 +16,7 @@ export default function SimulatorLabPage() {
   const lab = useSimulatorLab();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-tour="simulator">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Simulator Lab</h1>

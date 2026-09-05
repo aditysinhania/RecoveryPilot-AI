@@ -17,10 +17,10 @@ const CELLS: Array<{
 }> = [
   {
     key: "success",
-    label: "Success rate",
+    label: "Revenue Recovery Rate",
     tone: "text-recovered",
     value: (health) => formatPercent(health.recovery_success_rate),
-    hint: (health) => `${health.total_cases} cases`,
+    hint: () => "Recovered ₹ ÷ at risk",
   },
   {
     key: "waiting",
@@ -63,7 +63,11 @@ export function RecoveryHealthPanel({ health }: RecoveryHealthPanelProps) {
       <SectionHeader title="Recovery health" description={`${health.total_cases} cases in the FitLife cohort.`} />
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
         {CELLS.map((cell) => (
-          <li key={cell.key} className="rounded-lg bg-surface-raised px-3 py-2">
+          <li
+            key={cell.key}
+            className="rounded-lg bg-surface-raised px-3 py-2"
+            title={cell.key === "success" ? "Merchant metrics: recovered revenue divided by revenue at risk" : undefined}
+          >
             <p className="text-[11px] uppercase tracking-wide text-muted">{cell.label}</p>
             <p className={`mt-1 text-lg font-semibold ${cell.tone}`}>{cell.value(health)}</p>
             <p className="text-[11px] text-muted">{cell.hint(health)}</p>

@@ -23,7 +23,7 @@ export function ChartCard({
     <motion.section
       {...chartFade}
       {...cardHover}
-      className={`rounded-xl border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}
+      className={`rp-glow-border rounded-xl border border-border bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}
     >
       <SectionHeader title={title} description={description} action={action} />
       {children}

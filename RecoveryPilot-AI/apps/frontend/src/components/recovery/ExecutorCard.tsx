@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { useDemoMode } from "@/demo/DemoContext";
 import { formatDateTime, titleCase } from "@/lib/format";
 import { executionTimelineFor } from "@/lib/executionTimeline";
 import { executeAction, replayAction, scheduleAction } from "@/services/actions";
+import { useToast } from "@/toast/ToastProvider";
 import type { AuditEvent, CaseDrawerModel, TimelineEvent } from "@/types/recovery";
 
 interface ExecutorCardProps {
@@ -22,6 +24,8 @@ const STEP_TONE: Record<string, string> = {
 /** Live orchestrator snapshot as Scheduled → Sent → Delivered → Retry → Captured/Failed. */
 export function ExecutorCard({ execution, recoveryCaseId, timeline, audit }: ExecutorCardProps) {
   const queryClient = useQueryClient();
+  const { isDemo } = useDemoMode();
+  const toast = useToast();
   const invalidate = (): void => {
     void queryClient.invalidateQueries({ queryKey: ["recovery-case", recoveryCaseId] });
     void queryClient.invalidateQueries({ queryKey: ["action-status", recoveryCaseId] });
@@ -30,11 +34,19 @@ export function ExecutorCard({ execution, recoveryCaseId, timeline, audit }: Exe
   };
   const execute = useMutation({
     mutationFn: () => executeAction(recoveryCaseId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("Payment link generated", "Sandbox execute recorded for this case.");
+    },
+    onError: () => toast.error("Failed connection", "Could not execute this recovery action."),
   });
   const schedule = useMutation({
     mutationFn: () => scheduleAction(recoveryCaseId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("Scheduler created", "The next bounded retry is queued.");
+    },
+    onError: () => toast.error("Failed connection", "Could not schedule this recovery action."),
   });
   const replay = useMutation({
     mutationFn: () => replayAction(execution.execution_id as string),
@@ -43,7 +55,7 @@ export function ExecutorCard({ execution, recoveryCaseId, timeline, audit }: Exe
   const busy = execute.isPending || schedule.isPending || replay.isPending;
   const error = execute.error ?? schedule.error ?? replay.error;
   const liveStatus = execution.display_status || execution.status;
-  const canAct = execution.live;
+  const canAct = execution.live && !isDemo;
   const steps = executionTimelineFor(execution, timeline, audit);
 
   return (
@@ -128,19 +140,21 @@ export function ExecutorCard({ execution, recoveryCaseId, timeline, audit }: Exe
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-lg bg-info px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+          className="rp-btn-ripple rounded-lg bg-info px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50"
           disabled={busy || !canAct}
+          aria-label={isDemo ? "Execute disabled in demo workspace" : "Execute recovery action"}
           onClick={() => execute.mutate()}
         >
-          Execute
+          {execute.isPending ? "Executing…" : "Execute"}
         </button>
         <button
           type="button"
-          className="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-foreground disabled:opacity-50"
+          className="rp-btn-ripple rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-foreground disabled:opacity-50"
           disabled={busy || !canAct}
+          aria-label={isDemo ? "Schedule disabled in demo workspace" : "Schedule recovery action"}
           onClick={() => schedule.mutate()}
         >
-          Schedule
+          {schedule.isPending ? "Scheduling…" : "Schedule"}
         </button>
         <button
           type="button"
@@ -151,7 +165,9 @@ export function ExecutorCard({ execution, recoveryCaseId, timeline, audit }: Exe
           Replay
         </button>
       </div>
-      {canAct ? null : (
+      {isDemo ? (
+        <p className="mt-2 text-[11px] text-ai">Demo workspace — Execute and Schedule are disabled. No Razorpay calls.</p>
+      ) : canAct ? null : (
         <p className="mt-2 text-[11px] text-muted">Sandbox execute is available when live APIs are connected.</p>
       )}
       {error ? (

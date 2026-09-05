@@ -271,6 +271,20 @@ export interface AuditEvent {
   correlation_id: string;
   policy_decision?: string | null;
   details: Record<string, unknown>;
+  status?: string | null;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+}
+
+export interface CaseAuditEvent {
+  event_id: string;
+  event_type: string;
+  actor: string;
+  status: string;
+  request_id: string;
+  correlation_id: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface ExplanationBlock {

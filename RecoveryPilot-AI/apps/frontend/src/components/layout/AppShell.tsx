@@ -1,6 +1,11 @@
+import { motion } from "framer-motion";
 import { useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { DemoBanner } from "@/components/layout/DemoBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNavbar } from "@/components/layout/TopNavbar";
+import { useDemoMode } from "@/demo/DemoContext";
+import { fadeUp } from "@/lib/motion";
 import type { MerchantOption } from "@/types/dashboard";
 
 interface AppShellProps {
@@ -24,6 +29,9 @@ export function AppShell({
   dataSource,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { isDemo } = useDemoMode();
+  const { pathname } = useLocation();
+
   return (
     <div className="flex h-screen overflow-hidden bg-canvas text-foreground">
       <a
@@ -34,6 +42,7 @@ export function AppShell({
       </a>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {isDemo ? <DemoBanner /> : null}
         <TopNavbar
           merchants={merchants}
           merchantId={merchantId}
@@ -43,7 +52,9 @@ export function AppShell({
           dataSource={dataSource}
         />
         <main id="main-content" className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 lg:p-5">
-          {children}
+          <motion.div key={pathname} {...fadeUp}>
+            {children}
+          </motion.div>
         </main>
       </div>
     </div>

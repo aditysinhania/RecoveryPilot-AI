@@ -6,18 +6,22 @@ import {
   CircleDollarSign,
   FolderOpen,
   Hourglass,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { RecoveryCaseDrawer } from "@/components/recovery/RecoveryCaseDrawer";
 import { RecoveryFilters } from "@/components/recovery/RecoveryFilters";
 import { RecoveryQueueTable } from "@/components/recovery/RecoveryQueueTable";
 import { ErrorState } from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/LoadingSkeleton";
+import { EmptyWorkspace } from "@/components/workspace/EmptyWorkspace";
 import { useMerchantDashboard } from "@/hooks/useMerchantDashboard";
 import { useRecoveryCase } from "@/hooks/useRecoveryCase";
 import { useRecoveryQueue } from "@/hooks/useRecoveryQueue";
-import { formatCompact, formatPaise } from "@/lib/format";
+import { formatCompact, formatPaise, formatPercent } from "@/lib/format";
 import { EMPTY_FILTERS } from "@/lib/recoveryMap";
 import { emptyQueuePage } from "@/services/recoveryQueue";
+import { FITLIFE_LIST_ID } from "@/services/dashboard";
 import type { QueueSortKey, RecoveryQueueFilters } from "@/types/recovery";
 
 type LayoutContext = ReturnType<typeof useMerchantDashboard>;
@@ -29,14 +33,19 @@ function SecondaryChip({
   value,
   tone,
   icon,
+  title,
 }: {
   label: string;
   value: string;
   tone: string;
   icon: ReactNode;
+  title?: string;
 }) {
   return (
-    <div className="flex min-w-[108px] items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5">
+    <div
+      className="flex min-w-[108px] items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
+      title={title}
+    >
       <span className={tone} aria-hidden>
         {icon}
       </span>
@@ -50,7 +59,7 @@ function SecondaryChip({
 
 /** Merchant recovery operations queue. Read-only in Phase 8B. */
 export default function RecoveryQueue() {
-  const { merchantId, merchants, setMerchantId } = useOutletContext<LayoutContext>();
+  const { merchantId, merchants, setMerchantId, emptyWorkspace, isDemo } = useOutletContext<LayoutContext>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<RecoveryQueueFilters>({
     ...EMPTY_FILTERS,
@@ -75,6 +84,8 @@ export default function RecoveryQueue() {
     pageSize: PAGE_SIZE,
     sortKey,
     sortDir,
+    simulatorOnly: isDemo,
+    emptyWorkspace,
   });
   const caseQuery = useRecoveryCase(selectedId);
 
@@ -113,15 +124,23 @@ export default function RecoveryQueue() {
 
   const waiting = summary ? summary.waiting_retry + summary.waiting_promise : 0;
 
+  if (emptyWorkspace) {
+    return <EmptyWorkspace onImportDemo={() => setMerchantId(FITLIFE_LIST_ID)} />;
+  }
+
   return (
-    <div className="flex h-[calc(100vh-5.25rem)] min-h-0 min-w-0 w-full flex-col gap-2 overflow-hidden">
+    <div
+      className="flex h-[calc(100vh-5.25rem)] min-h-0 min-w-0 w-full flex-col gap-2 overflow-hidden"
+      data-tour="queue"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Recovery Queue</h1>
           <p className="text-[11px] text-muted">Inspect AI decisions for every failed payment. Read-only.</p>
         </div>
       </div>
-      {queueQuery.data?.source === "simulator" && !queueQuery.isPending ? (
+      {queueQuery.isPending && !queueQuery.data ? <TableSkeleton /> : null}
+      {queueQuery.data?.source === "simulator" && !isDemo && !queueQuery.isPending ? (
         <ErrorState
           compact
           message="Live queue APIs are unavailable. Showing the FitLife seed-42 simulator snapshot."
@@ -149,6 +168,13 @@ export default function RecoveryQueue() {
                 </p>
               </div>
             </div>
+            <SecondaryChip
+              label="Case Recovery Rate"
+              value={formatPercent(summary.recovery_rate)}
+              tone="text-recovered"
+              icon={<TrendingUp size={13} />}
+              title="Recovery summary: recovered cases among active and recovered cases"
+            />
             <SecondaryChip
               label="Open cases"
               value={formatCompact(summary.open_cases)}

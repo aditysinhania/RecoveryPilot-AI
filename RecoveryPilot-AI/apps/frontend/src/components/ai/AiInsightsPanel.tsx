@@ -24,7 +24,7 @@ export function AiInsightsPanel({ insights }: AiInsightsPanelProps) {
   };
 
   return (
-    <section aria-label="AI insights" className="rounded-xl border border-ai/30 bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
+    <section aria-label="AI insights" data-tour="insights" className="rounded-xl border border-ai/30 bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-ai">
           <Sparkles size={16} aria-hidden />

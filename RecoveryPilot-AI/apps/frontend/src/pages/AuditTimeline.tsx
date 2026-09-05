@@ -8,13 +8,20 @@ import { AuditMetricsHeader } from "@/components/audit/AuditMetricsHeader";
 import { ComplianceInsightsCard } from "@/components/audit/ComplianceInsightsCard";
 import { CorrelationGroupCard } from "@/components/audit/CorrelationGroupCard";
 import { EmptyState, ErrorState } from "@/components/shared/EmptyState";
-import { DashboardSkeleton } from "@/components/shared/LoadingSkeleton";
+import { TimelineSkeleton } from "@/components/shared/LoadingSkeleton";
+import { EmptyWorkspace } from "@/components/workspace/EmptyWorkspace";
 import { useAuditTimeline } from "@/hooks/useAuditTimeline";
+import { useMerchantDashboard } from "@/hooks/useMerchantDashboard";
 import { eventKey, groupByCorrelation } from "@/lib/auditMap";
+import { FITLIFE_LIST_ID } from "@/services/dashboard";
 import type { AuditEventView, AuditFilters as AuditFilterState } from "@/types/audit";
+import { useOutletContext } from "react-router-dom";
+
+type LayoutContext = ReturnType<typeof useMerchantDashboard>;
 
 /** Compliance-grade audit explorer. Read-only. Existing /audit APIs only. */
 export default function AuditTimelinePage() {
+  const { emptyWorkspace, setMerchantId, isDemo } = useOutletContext<LayoutContext>();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     filters,
@@ -31,10 +38,13 @@ export default function AuditTimelinePage() {
     isFetching,
     replayLoading,
     refetch,
-  } = useAuditTimeline({
-    correlationId: searchParams.get("correlation") ?? "",
-    caseId: searchParams.get("case") ?? "",
-  });
+  } = useAuditTimeline(
+    {
+      correlationId: searchParams.get("correlation") ?? "",
+      caseId: searchParams.get("case") ?? "",
+    },
+    { enabled: !emptyWorkspace },
+  );
   const [selected, setSelected] = useState<AuditEventView | null>(null);
 
   useEffect(() => {
@@ -78,16 +88,20 @@ export default function AuditTimelinePage() {
     }
   };
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
+  if (emptyWorkspace) {
+    return <EmptyWorkspace onImportDemo={() => setMerchantId(FITLIFE_LIST_ID)} />;
   }
 
-  const snapshot = events?.source === "simulator";
+  if (isLoading) {
+    return <TimelineSkeleton />;
+  }
+
+  const snapshot = events?.source === "simulator" && !isDemo;
   const selectedKey = selected ? eventKey(selected) : null;
   const replayTarget = filters.correlationId.trim() || selected?.correlation_id || "";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-tour="audit">
       <div>
         <h1 className="text-base font-semibold tracking-tight">Audit Timeline</h1>
         <p className="text-[11px] text-muted">

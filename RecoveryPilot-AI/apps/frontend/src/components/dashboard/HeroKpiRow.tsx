@@ -10,7 +10,7 @@ interface HeroKpiRowProps {
 /** Top KPI strip for the merchant dashboard. */
 export function HeroKpiRow({ kpis }: HeroKpiRowProps) {
   return (
-    <section aria-label="Key metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <section aria-label="Key metrics" data-tour="kpis" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       <StatCard
         label="Revenue at risk"
         value={kpis.revenue_at_risk}
@@ -26,9 +26,11 @@ export function HeroKpiRow({ kpis }: HeroKpiRowProps) {
         icon={<Wallet size={16} />}
       />
       <StatCard
-        label="Recovery rate"
+        label="Revenue Recovery Rate"
         value={kpis.recovery_rate}
         format={(n) => formatPercent(n)}
+        hint="Recovered revenue ÷ revenue at risk"
+        title="Merchant metrics: recovered revenue divided by revenue at risk"
         tone="recovered"
         icon={<TrendingUp size={16} />}
       />

@@ -104,6 +104,20 @@ class AuditEventRecord:
 
 
 @dataclass(frozen=True)
+class RecoveryCaseAuditEvent:
+    """One ``audit_logs`` row for ``GET /recovery/cases/{id}/audit``."""
+
+    event_id: UUID
+    event_type: str
+    actor: str
+    status: str
+    request_id: str
+    correlation_id: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
+@dataclass(frozen=True)
 class AuditEventPage:
     """One page of explorer rows plus the matching total."""
 
@@ -407,6 +421,70 @@ def get_audit_events(
         extra={"offset": offset, "limit": limit, "total": total},
     )
     return AuditEventPage(items=[_record_from_log(row) for row in rows], total=total)
+
+
+def _event_status(log: AuditLog) -> str:
+    """Best-effort status from policy decision, payload, or event type."""
+    payload = _payload_dict(log.structured_payload)
+    if log.policy_decision is not None:
+        return str(log.policy_decision)
+    for key in ("status", "execution_status", "recovery_status"):
+        value = payload.get(key)
+        if value:
+            return str(value)
+    return str(log.event_type)
+
+
+def _event_metadata(log: AuditLog) -> dict[str, Any]:
+    """Shallow-copy JSONB payload plus display fields. Does not mutate storage."""
+    metadata = dict(_payload_dict(log.structured_payload))
+    metadata.setdefault("event_summary", log.event_summary)
+    metadata.setdefault("actor_type", str(log.actor_type))
+    if log.policy_decision is not None:
+        metadata.setdefault("policy_decision", str(log.policy_decision))
+    return metadata
+
+
+def list_case_audit_events(db: Session, recovery_case_id: UUID) -> list[RecoveryCaseAuditEvent]:
+    """Return ``audit_logs`` for one case, newest first.
+
+    Missing cases and cases with no trail both yield an empty list (HTTP 200).
+
+    Args:
+        db: Request-scoped SQLAlchemy session.
+        recovery_case_id: Case whose append-only trail is listed.
+
+    Returns:
+        Mapped audit rows sorted by ``created_at`` descending.
+    """
+    rows = db.scalars(
+        select(AuditLog)
+        .where(AuditLog.recovery_case_id == recovery_case_id)
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+    ).all()
+    events: list[RecoveryCaseAuditEvent] = []
+    for row in rows:
+        request_id, correlation_id = _ids_for_log(row)
+        events.append(
+            RecoveryCaseAuditEvent(
+                event_id=row.id,
+                event_type=str(row.event_type),
+                actor=row.actor_name,
+                status=_event_status(row),
+                request_id=request_id,
+                correlation_id=correlation_id,
+                metadata=_event_metadata(row),
+                created_at=row.created_at,
+            )
+        )
+    logger.info(
+        "recovery.case.audit",
+        extra={
+            "recovery_case_id": str(recovery_case_id),
+            "event_count": len(events),
+        },
+    )
+    return events
 
 
 def _webhook_events_for_payment(db: Session, payment: Payment) -> list[WebhookEvent]:

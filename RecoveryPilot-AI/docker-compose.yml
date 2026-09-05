@@ -1,18 +1,23 @@
+
 name: recoverypilot-ai
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-recoverypilot}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recoverypilot}
       POSTGRES_DB: ${POSTGRES_DB:-recoverypilot}
+
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recoverypilot} -d ${POSTGRES_DB:-recoverypilot}"]
       interval: 5s
@@ -23,39 +28,68 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
+
     restart: unless-stopped
+
     env_file:
-      - .env.example
+      - .env
+
     environment:
-      APP_ENV: production
-      APP_NAME: RecoveryPilot AI
-      API_VERSION: v1
-      LOG_LEVEL: INFO
+      APP_ENV: ${APP_ENV}
+      APP_NAME: ${APP_NAME}
+      API_VERSION: ${API_VERSION}
+      LOG_LEVEL: ${LOG_LEVEL}
+
+      DATABASE_URL: postgresql+psycopg://recoverypilot:recoverypilot@postgres:5432/recoverypilot
+
       POSTGRES_HOST: postgres
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-recoverypilot}:${POSTGRES_PASSWORD:-recoverypilot}@postgres:5432/${POSTGRES_DB:-recoverypilot}
-      CORS_ORIGINS: http://localhost:8080
-      TRUSTED_HOSTS: localhost,127.0.0.1,backend
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_MINUTES: 15
+      JWT_REFRESH_DAYS: 7
+      JWT_ALGORITHM: HS256
+
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS}
+
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 25s
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   frontend:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+
     restart: unless-stopped
+
     ports:
       - "${FRONTEND_PORT:-8080}:80"
+
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+

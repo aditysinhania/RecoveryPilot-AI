@@ -80,3 +80,105 @@ body {
 .rp-scroll::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.landing-page {
+  font-family: Inter, var(--font-sans);
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, rgb(192 132 252 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(56 189 248 / 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 20%, #000 35%, transparent 75%);
+}
+
+.landing-glass {
+  background: rgb(24 24 27 / 0.62);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 64px rgb(0 0 0 / 0.45);
+}
+
+.landing-cta {
+  background: linear-gradient(135deg, #c084fc 0%, #7c3aed 48%, #38bdf8 100%);
+  box-shadow: 0 0 0 1px rgb(192 132 252 / 0.25), 0 10px 32px rgb(124 58 237 / 0.35);
+}
+
+.landing-cta-pulse {
+  animation: landing-cta-glow 3.2s ease-in-out infinite;
+}
+
+@keyframes landing-cta-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgb(192 132 252 / 0.25), 0 10px 32px rgb(124 58 237 / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgb(56 189 248 / 0.35), 0 12px 40px rgb(56 189 248 / 0.28);
+  }
+}
+
+@keyframes landing-border-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.landing-gradient-border {
+  position: relative;
+  isolation: isolate;
+}
+
+.landing-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(120deg, #c084fc, #38bdf8, #34d399, #c084fc);
+  background-size: 220% 220%;
+  animation: landing-border-shift 8s linear infinite;
+  opacity: 0.55;
+}
+
+.rp-hover-lift {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.rp-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgb(192 132 252 / 0.22), var(--shadow-card);
+}
+
+.rp-glow-border {
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.rp-glow-border:hover {
+  border-color: rgb(192 132 252 / 0.45);
+  box-shadow: 0 0 0 1px rgb(192 132 252 / 0.22), 0 12px 32px rgb(124 58 237 / 0.16);
+}
+
+.rp-btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.rp-btn-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgb(255 255 255 / 0.28) 0%, transparent 62%);
+  opacity: 0;
+  transform: scale(0.35);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.rp-btn-ripple:active::after {
+  opacity: 1;
+  transform: scale(1.45);
+}

@@ -73,6 +73,7 @@ def error_body(
     rid, cid = _ids()
     return ErrorResponse(
         error=error,
+        message=error,
         code=code,
         request_id=request_id or rid,
         correlation_id=correlation_id or cid,

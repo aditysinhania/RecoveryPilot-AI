@@ -12,6 +12,7 @@ from app.config.constants import DEFAULT_PAGE_SIZE
 from app.core.responses import paginated_body, success_body
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.recovery import (
+    RecoveryCaseAuditEvent,
     RecoveryCaseResponse,
     RecoveryQueueItem,
     RecoverySummaryResponse,
@@ -122,6 +123,31 @@ def get_recovery_timeline(
     data = recovery_service.get_recovery_timeline(db, recovery_case_id)
     logger.info(
         "recovery.timeline.ok",
+        extra={
+            "recovery_case_id": str(recovery_case_id),
+            "event_count": len(data),
+        },
+    )
+    return success_body(data=data, message="ok")
+
+
+@router.get(
+    "/cases/{recovery_case_id}/audit",
+    response_model=ApiResponse[list[RecoveryCaseAuditEvent]],
+)
+def get_recovery_case_audit(
+    recovery_case_id: UUID,
+    db: SessionDep,
+    logger: LoggerDep,
+) -> dict[str, Any]:
+    """Append-only ``audit_logs`` for one case, newest first. Empty list if none."""
+    logger.info(
+        "recovery.case.audit.start",
+        extra={"recovery_case_id": str(recovery_case_id)},
+    )
+    data = recovery_service.get_case_audit_events(db, recovery_case_id)
+    logger.info(
+        "recovery.case.audit.ok",
         extra={
             "recovery_case_id": str(recovery_case_id),
             "event_count": len(data),

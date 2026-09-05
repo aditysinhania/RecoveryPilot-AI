@@ -13,20 +13,36 @@ import { StrategyChart } from "@/components/analytics/StrategyChart";
 import { RecoveryFunnelChart } from "@/components/charts/RecoveryFunnelChart";
 import { RevenueTrendChart } from "@/components/charts/RevenueTrendChart";
 import { ErrorState } from "@/components/shared/EmptyState";
-import { DashboardSkeleton } from "@/components/shared/LoadingSkeleton";
+import { ChartSkeleton, DashboardSkeleton } from "@/components/shared/LoadingSkeleton";
 import { SectionHeader } from "@/components/shared/SectionHeader";
+import { EmptyWorkspace } from "@/components/workspace/EmptyWorkspace";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useMerchantDashboard } from "@/hooks/useMerchantDashboard";
+import { FITLIFE_LIST_ID } from "@/services/dashboard";
+import { useOutletContext } from "react-router-dom";
+
+type LayoutContext = ReturnType<typeof useMerchantDashboard>;
 
 /** Merchant analytics. Read-only. Uses existing dashboard + queue APIs. */
 export default function Analytics() {
+  const { emptyWorkspace, setMerchantId } = useOutletContext<LayoutContext>();
   const { model, range, setRange, isLoading, isError, isFetching, refetch } = useAnalytics();
 
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="space-y-4">
+        <DashboardSkeleton />
+        <ChartSkeleton />
+      </div>
+    );
+  }
+
+  if (emptyWorkspace) {
+    return <EmptyWorkspace onImportDemo={() => setMerchantId(FITLIFE_LIST_ID)} />;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="analytics">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Analytics</h1>

@@ -43,6 +43,7 @@ class ErrorResponse(BaseModel):
 
     success: bool = False
     error: str
+    message: str = ""
     code: str
     request_id: str
     correlation_id: str

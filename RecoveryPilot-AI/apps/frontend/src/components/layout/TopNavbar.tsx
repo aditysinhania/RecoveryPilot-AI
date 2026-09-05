@@ -1,4 +1,8 @@
 import { Bell, Search } from "lucide-react";
+import { ProfileMenu } from "@/components/layout/ProfileMenu";
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
+import { DemoBadge } from "@/demo/DemoBadge";
+import { useDemoMode } from "@/demo/DemoContext";
 import { formatRelativeTime } from "@/lib/format";
 import type { MerchantOption } from "@/types/dashboard";
 
@@ -20,23 +24,17 @@ export function TopNavbar({
   lastSyncedAt,
   dataSource,
 }: TopNavbarProps) {
+  const { isDemo } = useDemoMode();
+
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-canvas-muted/80 px-4 backdrop-blur">
-      <label className="sr-only" htmlFor="merchant-select">
-        Merchant
-      </label>
-      <select
-        id="merchant-select"
-        value={merchantId}
-        onChange={(event) => onMerchantChange(event.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground"
-      >
-        {merchants.map((merchant) => (
-          <option key={merchant.id} value={merchant.id}>
-            {merchant.merchant_name}
-          </option>
-        ))}
-      </select>
+      <WorkspaceSwitcher
+        merchants={merchants}
+        merchantId={merchantId}
+        onMerchantChange={onMerchantChange}
+        forceDemoBadge={isDemo}
+      />
+      {isDemo ? <DemoBadge /> : null}
       <span className="rounded-full bg-info-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-info">
         {environment}
       </span>
@@ -61,12 +59,7 @@ export function TopNavbar({
         >
           <Bell size={18} />
         </button>
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-ai-muted text-xs font-semibold text-ai"
-          aria-label="Merchant user"
-        >
-          FG
-        </span>
+        <ProfileMenu />
       </div>
     </header>
   );
