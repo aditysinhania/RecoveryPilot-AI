@@ -1,0 +1,75 @@
+name: recoverypilot-ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: RecoveryPilot-AI
+
+jobs:
+  backend:
+    name: Lint, pytest, backend image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            RecoveryPilot-AI/pyproject.toml
+            RecoveryPilot-AI/**/pyproject.toml
+
+      - name: Install Python workspace
+        run: uv sync --group dev
+
+      - name: Ruff
+        run: uv run ruff check apps/backend services integrations shared simulator
+
+      - name: Pytest
+        env:
+          PYTHONPATH: apps/backend:services/src:integrations/src:shared/src:simulator/src:.:database
+          ACTION_SCHEDULER_ENABLED: "false"
+          APP_ENV: local
+          SENTRY_DSN: ""
+        run: uv run pytest apps/backend/tests -q --tb=short
+
+      - name: Build backend Docker image
+        run: docker build -f docker/Dockerfile.backend -t recoverypilot-backend:${{ github.sha }} .
+
+  frontend:
+    name: Typecheck and frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: RecoveryPilot-AI/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: RecoveryPilot-AI/pnpm-lock.yaml
+
+      - name: Install frontend
+        run: pnpm install --filter frontend
+
+      - name: Typecheck
+        run: pnpm --filter frontend typecheck
+
+      - name: Build
+        env:
+          VITE_API_BASE_URL: /api/v1
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_BUILD_SHA: ${{ github.sha }}
+        run: pnpm --filter frontend build
