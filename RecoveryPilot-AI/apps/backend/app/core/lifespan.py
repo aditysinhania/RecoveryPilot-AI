@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -23,11 +23,13 @@ from app.config.environment import validate_environment
 from app.config.logging import configure_logging, get_logger
 from app.config.settings import settings
 from app.core.exceptions import ApplicationException, DatabaseUnavailableError
+from app.core.metrics import render_metrics
 from app.core.middleware import register_middleware
 from app.core.responses import error_response
+from app.core.scheduler_worker import start_scheduler, stop_scheduler
+from app.core.sentry import init_sentry
 from app.db.health import ping_database
 from app.db.session import dispose_engine, get_engine
-from app.core.scheduler_worker import start_scheduler, stop_scheduler
 from app.utils.json import redact_mapping
 from app.utils.request_id import get_correlation_id, get_request_id
 
@@ -38,6 +40,7 @@ logger = get_logger(__name__)
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Startup: validate env, pool the engine, ping Postgres. Shutdown: dispose."""
     configure_logging()
+    init_sentry(settings)
     validate_environment(settings)
     public_meta = redact_mapping(
         {
@@ -124,6 +127,13 @@ def create_app() -> FastAPI:
     register_middleware(app, settings)
     register_exception_handlers(app)
     app.include_router(api_v1_router, prefix=API_PREFIX)
+
+    @app.get("/metrics", include_in_schema=False)
+    def prometheus_metrics() -> Response:
+        """Prometheus scrape endpoint. Plain text, not the JSON envelope."""
+        body, content_type = render_metrics()
+        return Response(content=body, media_type=content_type)
+
     logger.info(
         "app.created",
         extra={"app_name": settings.app_name, "api_prefix": API_PREFIX},

@@ -1,9 +1,10 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
-    PATH="/root/.local/bin:$PATH"
+    PATH="/root/.local/bin:$PATH" \
+    PYTHONPATH="/repo:/repo/apps/backend:/repo/services/src:/repo/integrations/src:/repo/shared/src:/repo/simulator/src:/repo/database"
 
 WORKDIR /repo
 
@@ -23,11 +24,10 @@ COPY database ./database
 
 RUN uv sync --no-dev
 
-ENV PYTHONPATH=/repo:/repo/apps/backend:/repo/shared/src
-WORKDIR /repo
+WORKDIR /repo/apps/backend
 EXPOSE 8000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=25s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/api/v1/health || exit 1
+    CMD curl -fsS http://127.0.0.1:8000/api/v1/live || exit 1
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--project", "/repo", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   FlaskConical,
   History,
@@ -16,6 +17,7 @@ const ITEMS = [
   { to: "/analytics", label: "Analytics", icon: BarChart3, end: false },
   { to: "/audit", label: "Audit Timeline", icon: History, end: false },
   { to: "/simulator", label: "Simulator", icon: FlaskConical, end: false },
+  { to: "/operations", label: "Operations", icon: Activity, end: false },
 ] as const;
 
 interface SidebarProps {

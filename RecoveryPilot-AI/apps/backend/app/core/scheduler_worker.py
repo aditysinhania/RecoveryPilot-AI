@@ -80,3 +80,8 @@ def stop_scheduler() -> None:
     if _thread is not None:
         _thread.join(timeout=2)
         _thread = None
+
+
+def is_scheduler_thread_alive() -> bool:
+    """True when the daemon tick thread is running. Does not execute due work."""
+    return _thread is not None and _thread.is_alive()

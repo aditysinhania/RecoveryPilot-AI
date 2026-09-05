@@ -1,6 +1,23 @@
 import type { ApiEnvelope, PaginatedEnvelope } from "@/types/dashboard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+function resolveApiBase(): string {
+  if (import.meta.env.DEV) {
+    return "/api/v1";
+  }
+  const raw = String(import.meta.env.VITE_API_BASE_URL ?? "/api/v1").replace(/\/$/, "");
+  if (raw.endsWith("/api/v1")) {
+    return raw;
+  }
+  if (raw.endsWith("/api")) {
+    return `${raw}/v1`;
+  }
+  if (/^https?:\/\//.test(raw)) {
+    return `${raw}/api/v1`;
+  }
+  return raw || "/api/v1";
+}
+
+const API_BASE = resolveApiBase();
 
 export class DashboardApiError extends Error {
   readonly status: number;

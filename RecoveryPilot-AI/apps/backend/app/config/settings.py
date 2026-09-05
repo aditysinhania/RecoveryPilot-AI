@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.config.constants import ALLOWED_ENVIRONMENTS, POOL_MAX_OVERFLOW, POOL_SIZE
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
     cors_origins: str = "http://localhost:5173"
-    trusted_hosts: str = "localhost,127.0.0.1,testserver,backend"
+    trusted_hosts: str = "localhost,127.0.0.1,testserver,backend,nginx,frontend"
     database_url: str = (
         "postgresql+psycopg://recoverypilot:recoverypilot@localhost:5432/recoverypilot"
     )
@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     gemini_max_output_tokens: int = 512
     action_scheduler_enabled: bool = True
     action_scheduler_interval_seconds: int = 15
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+    redis_url: str = ""
+    app_version: str = "0.1.0"
+    build_sha: str = "dev"
 
     @field_validator("app_env")
     @classmethod

@@ -4,6 +4,7 @@ import Analytics from "@/pages/Analytics";
 import AuditTimelinePage from "@/pages/AuditTimeline";
 import Dashboard from "@/pages/Dashboard";
 import DashboardLayout from "@/pages/DashboardLayout";
+import OperationsStatusPage from "@/pages/OperationsStatus";
 import SimulatorLabPage from "@/pages/SimulatorLab";
 import RecoveryQueue from "@/pages/RecoveryQueue";
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="audit" element={<AuditTimelinePage />} />
             <Route path="simulator" element={<SimulatorLabPage />} />
+            <Route path="operations" element={<OperationsStatusPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

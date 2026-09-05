@@ -35,4 +35,5 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     {"name": "Simulator", "description": "Batch simulator placeholders."},
     {"name": "Actions", "description": "Recovery action orchestrator (Razorpay Sandbox, mock comms)."},
     {"name": "Webhooks", "description": "Inbound Razorpay webhooks (signature verify, inbox, orchestrator dispatch)."},
+    {"name": "Operations", "description": "Production health snapshot for the Operations Status page."},
 ]

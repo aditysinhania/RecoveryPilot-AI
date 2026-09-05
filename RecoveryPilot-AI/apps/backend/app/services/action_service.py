@@ -4,19 +4,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy.orm import Session
-
-from app.config.settings import Settings
-from app.core.exceptions import ActionNotFoundError, RecoveryNotFoundError
-from app.schemas.actions import (
-    ActionDashboardResponse,
-    ActionDelivery,
-    ActionExecutionResponse,
-    ActionStatusResponse,
-    SchedulerQueueMetrics,
-)
 from integrations.razorpay import RazorpaySandboxClient
-from services.action_orchestrator.models import ActionDashboardSummary, ActionExecutionResult, ActionStatusResult
+from services.action_orchestrator.models import (
+    ActionDashboardSummary,
+    ActionExecutionResult,
+    ActionStatusResult,
+)
 from services.action_orchestrator.orchestrator import ActionNotFoundError as DomainActionNotFound
 from services.action_orchestrator_service import (
     execute_case,
@@ -27,11 +20,27 @@ from services.action_orchestrator_service import (
 )
 from services.razorpay_actions.service import RazorpayActionService
 from services.recovery_service import RecoveryCaseNotFoundError as DomainCaseNotFound
+from sqlalchemy.orm import Session
+
+from app.config.settings import Settings
+from app.core.exceptions import ActionNotFoundError, RecoveryNotFoundError
+from app.core.metrics import record_action_execution
+from app.schemas.actions import (
+    ActionDashboardResponse,
+    ActionDelivery,
+    ActionExecutionResponse,
+    ActionStatusResponse,
+    SchedulerQueueMetrics,
+)
+from app.utils.request_id import set_execution_id, set_recovery_case_id
 
 
 def _razorpay(settings: Settings) -> RazorpayActionService:
     """Sandbox client from settings. Placeholder keys stay in mock mode."""
-    client = RazorpaySandboxClient(key_id=settings.razorpay_key_id, key_secret=settings.razorpay_key_secret)
+    client = RazorpaySandboxClient(
+        key_id=settings.razorpay_key_id,
+        key_secret=settings.razorpay_key_secret,
+    )
     return RazorpayActionService(client)
 
 
@@ -52,6 +61,8 @@ def _delivery(item: object) -> ActionDelivery:
 
 def _execution(result: ActionExecutionResult) -> ActionExecutionResponse:
     """Map a domain execution onto the HTTP model."""
+    set_recovery_case_id(str(result.recovery_case_id))
+    set_execution_id(str(result.execution_id))
     return ActionExecutionResponse(
         execution_id=result.execution_id,
         recovery_case_id=result.recovery_case_id,
@@ -132,6 +143,10 @@ def execute(
             correlation_id=correlation_id,
         )
         db.commit()
+        record_action_execution(
+            payment_link=result.payment_link,
+            retry_attempts=result.retry_attempts,
+        )
         return _execution(result)
     except Exception as exc:
         db.rollback()
@@ -156,6 +171,10 @@ def schedule(
             correlation_id=correlation_id,
         )
         db.commit()
+        record_action_execution(
+            payment_link=result.payment_link,
+            retry_attempts=result.retry_attempts,
+        )
         return _execution(result)
     except Exception as exc:
         db.rollback()
@@ -200,6 +219,10 @@ def replay(
             correlation_id=correlation_id,
         )
         db.commit()
+        record_action_execution(
+            payment_link=result.payment_link,
+            retry_attempts=result.retry_attempts,
+        )
         return _execution(result)
     except Exception as exc:
         db.rollback()

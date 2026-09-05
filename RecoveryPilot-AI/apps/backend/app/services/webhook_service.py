@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
-
-from app.core.exceptions import InvalidWebhookSignatureError
-from app.db.session import SessionLocal
-from app.schemas.webhooks import WebhookIngestResponse, WebhookSummaryResponse
 from integrations.razorpay import verify_webhook_signature
 from services.razorpay_webhook_service import build_webhook_service
 from services.razorpay_webhooks.models import WebhookIngestResult, WebhookSummary
+from sqlalchemy.orm import Session
+
+from app.core.exceptions import InvalidWebhookSignatureError
+from app.core.metrics import record_webhook
+from app.db.session import SessionLocal
+from app.schemas.webhooks import WebhookIngestResponse, WebhookSummaryResponse
+from app.utils.request_id import set_recovery_case_id
 
 
 def _ingest_response(result: WebhookIngestResult) -> WebhookIngestResponse:
@@ -59,6 +61,9 @@ def ingest_razorpay_webhook(
         service = build_webhook_service(db)
         result = service.ingest(raw_body, request_id=request_id, correlation_id=correlation_id)
         db.commit()
+        record_webhook(replayed=result.replayed)
+        if result.recovery_case_id is not None:
+            set_recovery_case_id(str(result.recovery_case_id))
         return _ingest_response(result)
     except Exception:
         db.rollback()

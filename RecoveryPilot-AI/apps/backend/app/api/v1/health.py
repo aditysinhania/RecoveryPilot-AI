@@ -10,6 +10,9 @@ from app.api.deps import LoggerDep, SettingsDep
 from app.core.exceptions import DatabaseUnavailableError
 from app.core.responses import success_body
 from app.db.health import ping_database
+from app.schemas.common import ApiResponse
+from app.schemas.ops import ProbeComponent, SchedulerHealth
+from app.services.health_service import probe_gemini, probe_razorpay, probe_scheduler
 from app.utils.time import isoformat_now
 
 router = APIRouter(tags=["Health"])
@@ -81,3 +84,40 @@ def health_database() -> dict[str, Any]:
         message="database connected",
         data={"database": "connected", "timestamp": isoformat_now()},
     )
+
+
+@router.get("/health/scheduler", response_model=ApiResponse[SchedulerHealth])
+def health_scheduler(
+    settings: SettingsDep,
+    logger: LoggerDep,
+) -> dict[str, Any]:
+    """Scheduler daemon thread and queue counts. Always HTTP 200."""
+    db = None
+    try:
+        from app.db.session import SessionLocal
+
+        db = SessionLocal()
+        data = probe_scheduler(settings, db)
+    except Exception:
+        data = probe_scheduler(settings, None)
+    finally:
+        if db is not None:
+            db.close()
+    logger.info("health.scheduler", extra={"status": data.status, "alive": data.thread_alive})
+    return success_body(data=data, message=data.status)
+
+
+@router.get("/health/gemini", response_model=ApiResponse[ProbeComponent])
+def health_gemini(settings: SettingsDep, logger: LoggerDep) -> dict[str, Any]:
+    """Gemini key configuration. Does not call generateContent."""
+    data = probe_gemini(settings)
+    logger.info("health.gemini", extra={"status": data.status, "mode": data.mode})
+    return success_body(data=data, message=data.status)
+
+
+@router.get("/health/razorpay", response_model=ApiResponse[ProbeComponent])
+def health_razorpay(settings: SettingsDep, logger: LoggerDep) -> dict[str, Any]:
+    """Razorpay Sandbox vs mock. Does not create charges."""
+    data = probe_razorpay(settings)
+    logger.info("health.razorpay", extra={"status": data.status, "mode": data.mode})
+    return success_body(data=data, message=data.status)

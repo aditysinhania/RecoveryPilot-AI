@@ -1,0 +1,106 @@
+name: recoverypilot-ai-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recoverypilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recoverypilot}
+      POSTGRES_DB: ${POSTGRES_DB:-recoverypilot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recoverypilot} -d ${POSTGRES_DB:-recoverypilot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - recoverypilot
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - recoverypilot
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      APP_NAME: RecoveryPilot AI
+      API_VERSION: v1
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-recoverypilot}:${POSTGRES_PASSWORD:-recoverypilot}@postgres:5432/${POSTGRES_DB:-recoverypilot}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      TRUSTED_HOSTS: localhost,127.0.0.1,backend,nginx,frontend
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      BUILD_SHA: ${BUILD_SHA:-dev}
+      ACTION_SCHEDULER_ENABLED: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - recoverypilot
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_APP_VERSION: ${APP_VERSION:-0.1.0}
+        VITE_BUILD_SHA: ${BUILD_SHA:-dev}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - recoverypilot
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - recoverypilot
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  recoverypilot:
+    driver: bridge

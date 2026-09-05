@@ -1,8 +1,9 @@
-"""ASGI middleware: trusted host, CORS, gzip, ids, timing, access logs."""
+"""ASGI middleware: trusted host, CORS, gzip, ids, timing, access logs, metrics."""
 
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections.abc import Awaitable, Callable
 
@@ -18,10 +19,47 @@ from app.config.constants import (
     REQUEST_ID_HEADER,
 )
 from app.config.settings import Settings
-from app.utils.request_id import set_correlation_id, set_request_id
+from app.core.metrics import observe_http
+from app.utils.request_id import (
+    set_correlation_id,
+    set_execution_id,
+    set_merchant_id,
+    set_recovery_case_id,
+    set_request_id,
+)
 from app.utils.uuid import new_uuid_str
 
 logger = logging.getLogger(__name__)
+
+_UUID_RE = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+)
+_SKIP_METRICS_PATHS = frozenset({"/metrics"})
+
+
+def _route_template(request: Request) -> str:
+    """Prefer the matched FastAPI route template to keep metric cardinality low."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    if isinstance(path, str) and path:
+        return path
+    return request.url.path
+
+
+def _bind_ids_from_path(path: str) -> None:
+    """Copy UUID path segments into log context. Does not change routing."""
+    merchant = re.search(r"/merchants/(" + _UUID_RE.pattern + r")", path)
+    if merchant:
+        set_merchant_id(merchant.group(1))
+    case = re.search(
+        r"/(?:cases|recovery|actions)/(" + _UUID_RE.pattern + r")",
+        path,
+    )
+    if case:
+        set_recovery_case_id(case.group(1))
+    execution = re.search(r"/replay/(" + _UUID_RE.pattern + r")", path)
+    if execution:
+        set_execution_id(execution.group(1))
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
@@ -41,6 +79,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request.state.correlation_id = correlation_id
         set_request_id(request_id)
         set_correlation_id(correlation_id)
+        set_merchant_id("")
+        set_recovery_case_id("")
+        set_execution_id("")
+        _bind_ids_from_path(request.url.path)
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
         response.headers[CORRELATION_ID_HEADER] = correlation_id
@@ -55,11 +97,15 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        """Time the downstream stack."""
+        """Time the downstream stack and record Prometheus HTTP metrics."""
         started = time.perf_counter()
         response = await call_next(request)
-        request.state.latency_ms = round((time.perf_counter() - started) * 1000, 2)
+        elapsed = time.perf_counter() - started
+        request.state.latency_ms = round(elapsed * 1000, 2)
         response.headers["X-Response-Time-Ms"] = str(request.state.latency_ms)
+        path = _route_template(request)
+        if path not in _SKIP_METRICS_PATHS:
+            observe_http(request.method, path, response.status_code, elapsed)
         return response
 
 
@@ -73,6 +119,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         """Emit one access log line after the response is produced."""
         response = await call_next(request)
+        path = request.url.path
+        if path in _SKIP_METRICS_PATHS:
+            return response
         latency = getattr(request.state, "latency_ms", None)
         logger.info(
             "http.request",
@@ -80,7 +129,7 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
                 "request_id": getattr(request.state, "request_id", "-"),
                 "correlation_id": getattr(request.state, "correlation_id", "-"),
                 "method": request.method,
-                "path": request.url.path,
+                "path": path,
                 "status_code": response.status_code,
                 "latency_ms": latency,
             },
