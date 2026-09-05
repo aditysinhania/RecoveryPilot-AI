@@ -23,6 +23,22 @@ class AuthUserRecord:
 
 
 @dataclass(frozen=True)
+class OnboardingMerchantRecord:
+    """Merchant created or updated by combined onboarding."""
+
+    id: UUID
+    merchant_id: UUID
+    merchant_name: str
+    business_category: str
+    email: str
+    phone: str
+    timezone: str
+    workspace_kind: str
+    onboarding_completed: bool
+    onboarding_step: int
+
+
+@dataclass(frozen=True)
 class TokenPair:
     """Access JWT plus refresh JWT and the session row id."""
 

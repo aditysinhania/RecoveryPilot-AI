@@ -1,4 +1,4 @@
-"""Four-step merchant onboarding. Requires a valid access token."""
+"""Merchant onboarding. Combined POST plus four-step routes. Requires JWT."""
 
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from app.schemas.auth import (
     AuthUserOut,
     BusinessTypeRequest,
     MerchantInfoRequest,
+    OnboardingCompleteRequest,
+    OnboardingMerchantOut,
     RazorpayKeysRequest,
     WorkspaceRequest,
 )
@@ -26,6 +28,33 @@ router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 def onboarding_status(principal: CurrentUserDep) -> dict[str, Any]:
     """Current onboarding step and workspace kind."""
     return success_body(data=principal.user, message="ok")
+
+
+@router.post("", response_model=ApiResponse[OnboardingMerchantOut])
+def complete_onboarding(
+    payload: OnboardingCompleteRequest,
+    principal: CurrentUserDep,
+    db: SessionDep,
+    logger: LoggerDep,
+) -> dict[str, Any]:
+    """Create or update the merchant workspace in one authenticated request."""
+    data = auth_service.onboard_complete(
+        db,
+        principal.orm,
+        merchant_name=payload.merchant_name,
+        business_category=payload.business_category,
+        phone=payload.phone,
+        timezone=payload.timezone,
+        razorpay_key_id=payload.razorpay_key_id,
+        razorpay_key_secret=payload.razorpay_key_secret,
+        workspace_type=payload.workspace_type,
+        webhook_secret=payload.webhook_secret,
+    )
+    logger.info(
+        "onboarding.complete.ok",
+        extra={"merchant_id": str(data.merchant_id), "workspace_kind": data.workspace_kind},
+    )
+    return success_body(data=data, message="ok")
 
 
 @router.get("/business-types")

@@ -21,7 +21,7 @@ from services.auth.constants import (
     WORKSPACE_EMPTY,
 )
 from services.auth.errors import OnboardingError
-from services.auth.models import AuthUserRecord
+from services.auth.models import AuthUserRecord, OnboardingMerchantRecord
 from services.auth.service import to_user_record
 from services.auth.tables import ensure_auth_tables
 
@@ -43,6 +43,45 @@ def _require_merchant(user: MerchantUser) -> UUID:
     if user.merchant_id is None:
         raise OnboardingError("Complete merchant info first")
     return user.merchant_id
+
+
+def _resolve_business_category(raw: str) -> str:
+    """Map UI/QA labels onto known categories when possible."""
+    value = raw.strip()
+    if not value:
+        raise OnboardingError("Business category is required")
+    if value in BUSINESS_TYPES:
+        return value
+    lowered = value.casefold()
+    for item in BUSINESS_TYPES:
+        if item.casefold() == lowered:
+            return item
+    for item in BUSINESS_TYPES:
+        head = item.split("&", 1)[0].strip().casefold()
+        if lowered == head or item.casefold().startswith(lowered):
+            return item
+    return value[:128]
+
+
+def _merchant_record(db: Session, user: MerchantUser) -> OnboardingMerchantRecord:
+    """Project the tenant row plus onboarding flags."""
+    merchant_id = _require_merchant(user)
+    merchant = db.get(Merchant, merchant_id)
+    if merchant is None:
+        raise OnboardingError("Merchant record is missing")
+    row = _settings(db, merchant_id)
+    return OnboardingMerchantRecord(
+        id=merchant.id,
+        merchant_id=merchant.id,
+        merchant_name=merchant.merchant_name,
+        business_category=merchant.business_category,
+        email=merchant.email,
+        phone=merchant.phone,
+        timezone=merchant.timezone,
+        workspace_kind=row.workspace_kind,
+        onboarding_completed=bool(row.onboarding_completed),
+        onboarding_step=int(row.onboarding_step),
+    )
 
 
 def save_merchant_info(
@@ -161,3 +200,52 @@ def complete_workspace(
         extra={"merchant_id": str(merchant_id), "workspace_kind": kind},
     )
     return to_user_record(db, user)
+
+
+def complete_onboarding(
+    db: Session,
+    user: MerchantUser,
+    *,
+    merchant_name: str,
+    business_category: str,
+    phone: str,
+    timezone: str,
+    razorpay_key_id: str,
+    razorpay_key_secret: str,
+    workspace_type: str,
+    webhook_secret: str = "",
+) -> OnboardingMerchantRecord:
+    """Create or update merchant, settings, and Razorpay keys in one request."""
+    ensure_auth_tables(db)
+    save_merchant_info(
+        db,
+        user,
+        merchant_name=merchant_name,
+        phone=phone,
+        timezone=timezone,
+    )
+    merchant_id = _require_merchant(user)
+    merchant = db.get(Merchant, merchant_id)
+    if merchant is None:
+        raise OnboardingError("Merchant record is missing")
+    merchant.business_category = _resolve_business_category(business_category)
+    row = _settings(db, merchant_id)
+    row.onboarding_step = max(row.onboarding_step, 3)
+    save_razorpay_keys(
+        db,
+        user,
+        key_id=razorpay_key_id,
+        key_secret=razorpay_key_secret,
+        webhook_secret=webhook_secret,
+    )
+    complete_workspace(db, user, workspace_kind=workspace_type)
+    record = _merchant_record(db, user)
+    logger.info(
+        "onboarding.complete.ok",
+        extra={
+            "user_id": str(user.id),
+            "merchant_id": str(record.merchant_id),
+            "workspace_kind": record.workspace_kind,
+        },
+    )
+    return record

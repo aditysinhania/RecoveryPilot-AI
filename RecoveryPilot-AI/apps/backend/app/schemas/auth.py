@@ -88,6 +88,34 @@ class WorkspaceRequest(BaseModel):
     workspace_kind: str = Field(pattern="^(demo|empty)$")
 
 
+class OnboardingCompleteRequest(BaseModel):
+    """Single-shot onboarding body for ``POST /api/v1/onboarding``."""
+
+    merchant_name: str = Field(min_length=1, max_length=255)
+    business_category: str = Field(min_length=1, max_length=128)
+    phone: str = Field(default="", max_length=32)
+    timezone: str = Field(default="Asia/Kolkata", max_length=64)
+    razorpay_key_id: str = Field(min_length=1, max_length=128)
+    razorpay_key_secret: str = Field(min_length=1, max_length=255)
+    workspace_type: str = Field(pattern="^(demo|empty)$")
+    webhook_secret: str = Field(default="", max_length=255)
+
+
+class OnboardingMerchantOut(BaseModel):
+    """Merchant created or updated by combined onboarding."""
+
+    id: UUID
+    merchant_id: UUID
+    merchant_name: str
+    business_category: str
+    email: str
+    phone: str
+    timezone: str
+    workspace_kind: str
+    onboarding_completed: bool
+    onboarding_step: int
+
+
 class ProfileUpdateRequest(BaseModel):
     """Settings → Profile."""
 

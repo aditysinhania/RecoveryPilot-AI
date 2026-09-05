@@ -17,8 +17,9 @@ from services.auth.errors import (
 from services.auth.errors import (
     UnauthorizedError as DomainUnauthorized,
 )
-from services.auth.models import AuthResult, AuthUserRecord, SessionRecord
+from services.auth.models import AuthResult, AuthUserRecord, OnboardingMerchantRecord, SessionRecord
 from services.auth.onboarding import (
+    complete_onboarding,
     complete_workspace,
     save_business_type,
     save_merchant_info,
@@ -67,6 +68,7 @@ from app.core.exceptions import (
 )
 from app.schemas.auth import (
     AuthUserOut,
+    OnboardingMerchantOut,
     SessionOut,
     SettingsOut,
     TokenOut,
@@ -98,6 +100,22 @@ def _user_out(row: AuthUserRecord) -> AuthUserOut:
         onboarding_completed=row.onboarding_completed,
         onboarding_step=row.onboarding_step,
         workspace_kind=row.workspace_kind,
+    )
+
+
+def _merchant_out(row: OnboardingMerchantRecord) -> OnboardingMerchantOut:
+    """Map the domain merchant DTO onto the HTTP schema."""
+    return OnboardingMerchantOut(
+        id=row.id,
+        merchant_id=row.merchant_id,
+        merchant_name=row.merchant_name,
+        business_category=row.business_category,
+        email=row.email,
+        phone=row.phone,
+        timezone=row.timezone,
+        workspace_kind=row.workspace_kind,
+        onboarding_completed=row.onboarding_completed,
+        onboarding_step=row.onboarding_step,
     )
 
 
@@ -325,6 +343,16 @@ def onboard_workspace(db: Session, user: MerchantUser, workspace_kind: str) -> A
         raise _map_auth_error(exc) from exc
     db.commit()
     return _user_out(record)
+
+
+def onboard_complete(db: Session, user: MerchantUser, **kwargs: str) -> OnboardingMerchantOut:
+    """Create or update merchant, settings, and Razorpay keys in one request."""
+    try:
+        record = complete_onboarding(db, user, **kwargs)
+    except AuthError as exc:
+        raise _map_auth_error(exc) from exc
+    db.commit()
+    return _merchant_out(record)
 
 
 def get_settings(db: Session, user: MerchantUser) -> SettingsOut:

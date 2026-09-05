@@ -60,6 +60,10 @@ def test_auth_paths_registered(client: TestClient) -> None:
     assert "/api/v1/auth/refresh" in paths
     assert "/api/v1/auth/me" in paths
     assert "/api/v1/auth/logout" in paths
+    assert "/api/v1/onboarding" in paths
+    onboarding_methods = {method.lower() for method in paths["/api/v1/onboarding"]}
+    assert "get" in onboarding_methods
+    assert "post" in onboarding_methods
     assert "/api/v1/onboarding/merchant" in paths
     assert "/api/v1/account/settings" in paths
 
@@ -208,6 +212,110 @@ def test_onboarding_four_steps(client: TestClient) -> None:
     assert snapshot["merchant_name"] == "Northwind Yoga"
     assert snapshot["razorpay_configured"] is True
     assert "sandbox_secret" not in settings.text
+
+
+ONBOARDING_BODY: dict[str, str] = {
+    "merchant_name": "Adity Fitness",
+    "business_category": "Fitness",
+    "phone": "+919876543210",
+    "timezone": "Asia/Kolkata",
+    "razorpay_key_id": "rzp_test_xxx",
+    "razorpay_key_secret": "sandbox_secret",
+    "workspace_type": "empty",
+}
+
+
+def test_onboarding_unauthenticated_is_401(client: TestClient) -> None:
+    """POST /api/v1/onboarding requires a bearer token."""
+    response = client.post("/api/v1/onboarding", json=ONBOARDING_BODY)
+    assert response.status_code == 401
+    body = response.json()
+    assert body["success"] is False
+    assert body["code"] == "unauthorized"
+
+
+@pytest.mark.skipif(not ping_database(), reason="PostgreSQL is required for onboarding")
+def test_onboarding_complete_updates_me(client: TestClient) -> None:
+    """Authenticated POST creates the merchant and /auth/me reflects completion."""
+    email = f"oneshot-{uuid4().hex[:10]}@example.com"
+    signup = client.post(
+        "/api/v1/auth/signup",
+        json={"email": email, "password": "correct-horse", "full_name": "Adity"},
+    )
+    assert signup.status_code == 201, signup.text
+    token = signup.json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    created = client.post("/api/v1/onboarding", headers=headers, json=ONBOARDING_BODY)
+    assert created.status_code == 200, created.text
+    merchant = created.json()["data"]
+    assert merchant["merchant_name"] == "Adity Fitness"
+    assert merchant["business_category"] == "Fitness & Wellness"
+    assert merchant["onboarding_completed"] is True
+    assert merchant["onboarding_step"] == 4
+    assert merchant["workspace_kind"] == "empty"
+    assert merchant["merchant_id"]
+    assert "sandbox_secret" not in created.text
+
+    me = client.get("/api/v1/auth/me", headers=headers)
+    assert me.status_code == 200, me.text
+    profile = me.json()["data"]
+    assert profile["merchant_id"] == merchant["merchant_id"]
+    assert profile["merchant_name"] == "Adity Fitness"
+    assert profile["onboarding_completed"] is True
+    assert profile["onboarding_step"] == 4
+    assert profile["workspace_kind"] == "empty"
+
+    status = client.get("/api/v1/onboarding", headers=headers)
+    assert status.status_code == 200, status.text
+    assert status.json()["data"]["onboarding_completed"] is True
+
+
+@pytest.mark.skipif(not ping_database(), reason="PostgreSQL is required for onboarding")
+def test_onboarding_duplicate_updates_settings(client: TestClient) -> None:
+    """A second POST updates merchant settings instead of failing."""
+    email = f"dup-{uuid4().hex[:10]}@example.com"
+    signup = client.post(
+        "/api/v1/auth/signup",
+        json={"email": email, "password": "correct-horse", "full_name": "Adity"},
+    )
+    token = signup.json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post("/api/v1/onboarding", headers=headers, json=ONBOARDING_BODY)
+    assert first.status_code == 200, first.text
+    merchant_id = first.json()["data"]["merchant_id"]
+
+    updated = client.post(
+        "/api/v1/onboarding",
+        headers=headers,
+        json={
+            **ONBOARDING_BODY,
+            "merchant_name": "Adity Studio",
+            "phone": "+911112223333",
+            "razorpay_key_id": "rzp_test_updated",
+            "workspace_type": "demo",
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    body = updated.json()["data"]
+    assert body["merchant_id"] == merchant_id
+    assert body["merchant_name"] == "Adity Studio"
+    assert body["phone"] == "+911112223333"
+    assert body["workspace_kind"] == "demo"
+    assert body["onboarding_completed"] is True
+
+    settings = client.get("/api/v1/account/settings", headers=headers)
+    assert settings.status_code == 200, settings.text
+    snapshot = settings.json()["data"]
+    assert snapshot["merchant_name"] == "Adity Studio"
+    assert snapshot["phone"] == "+911112223333"
+    assert snapshot["workspace_kind"] == "demo"
+    assert snapshot["razorpay_configured"] is True
+    assert "sandbox_secret" not in settings.text
+    assert snapshot["razorpay_key_id"] is not None
+    assert snapshot["razorpay_key_id"] != "rzp_test_updated"
+    assert "…" in snapshot["razorpay_key_id"]
 
 
 @pytest.mark.skipif(not ping_database(), reason="PostgreSQL is required for login failures")
