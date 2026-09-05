@@ -149,7 +149,12 @@ export function RecoveryCaseDrawer({
                     <DiagnosisCard diagnosis={model.diagnosis} />
                     <PolicyCard policy={model.policy} />
                     <PlannerCard planner={model.planner} />
-                    <ExecutorCard execution={model.execution} />
+                    <ExecutorCard
+                      execution={model.execution}
+                      recoveryCaseId={model.case.recovery_case_id}
+                      timeline={model.timeline}
+                      audit={model.audit}
+                    />
                     <GeminiExplanationCard
                       merchant={model.explanations.merchant}
                       customer={model.explanations.customer}

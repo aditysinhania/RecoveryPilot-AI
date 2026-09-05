@@ -4,6 +4,7 @@ import { RecoveryFunnelChart } from "@/components/charts/RecoveryFunnelChart";
 import { RevenueTrendChart } from "@/components/charts/RevenueTrendChart";
 import { AiLiftCard } from "@/components/dashboard/AiLiftCard";
 import { HeroKpiRow } from "@/components/dashboard/HeroKpiRow";
+import { OrchestratorKpiRow } from "@/components/dashboard/OrchestratorKpiRow";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { RecoveryHealthPanel } from "@/components/dashboard/RecoveryHealthPanel";
 import { TopCustomersTable } from "@/components/dashboard/TopCustomersTable";
@@ -39,6 +40,7 @@ export default function Dashboard() {
         />
       ) : null}
       <HeroKpiRow kpis={view.kpis} />
+      <OrchestratorKpiRow orchestrator={view.orchestrator} />
       <AiInsightsPanel insights={view.insights} />
       <div className="grid gap-4 lg:grid-cols-2">
         <RecoveryFunnelChart data={view.funnel} />

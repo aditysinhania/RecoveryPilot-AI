@@ -31,6 +31,18 @@ export function AuditEventCard({ event }: AuditEventCardProps) {
             {formatDateTime(event.timestamp)} · {event.actor}
             {event.actor_type ? ` · ${event.actor_type}` : ""}
           </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {Boolean(event.details?.replay || event.details?.webhook_replay) ? (
+              <span className="rounded-full bg-info-muted px-2 py-0.5 text-[10px] font-medium text-info">
+                Webhook replay
+              </span>
+            ) : null}
+            {event.details?.duplicate === true ? (
+              <span className="rounded-full bg-ai-muted px-2 py-0.5 text-[10px] font-medium text-ai">
+                Duplicate prevented
+              </span>
+            ) : null}
+          </div>
           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500">{event.event_type}</p>
         </div>
       </button>

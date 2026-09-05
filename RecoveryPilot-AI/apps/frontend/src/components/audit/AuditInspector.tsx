@@ -65,8 +65,15 @@ export function AuditInspector({ event, replay, replayLoading, insights }: Audit
                 {event.policy_decision}
               </span>
             ) : null}
+            {event.webhook_replay ? (
+              <span className="rounded-full bg-info-muted px-2 py-0.5 text-[10px] font-medium text-info">
+                Webhook replay
+              </span>
+            ) : null}
             {event.duplicate ? (
-              <span className="rounded-full bg-ai-muted px-2 py-0.5 text-[10px] font-medium text-ai">Duplicate</span>
+              <span className="rounded-full bg-ai-muted px-2 py-0.5 text-[10px] font-medium text-ai">
+                Duplicate prevented
+              </span>
             ) : null}
           </div>
         </div>

@@ -8,7 +8,7 @@ import { formatPaise, formatPercent, formatRelativeTime, titleCase } from "@/lib
 import { contributorsFor, recoveryProbability } from "@/lib/recoveryMap";
 import type { QueueRow, QueueSortKey } from "@/types/recovery";
 
-const ROW_HEIGHT = 48;
+const ROW_HEIGHT = 56;
 const TABLE_MIN_WIDTH = 1120;
 
 const COLUMNS: { key: QueueSortKey; label: string; width: string }[] = [
@@ -333,6 +333,9 @@ export function RecoveryQueueTable({
                     </td>
                     <td className="overflow-hidden px-2 py-1.5 align-middle">
                       <StatusBadge status={row.recovery_status} />
+                      <span className="mt-0.5 block">
+                        <StatusBadge status={row.action_chip} />
+                      </span>
                     </td>
                     <td className="overflow-hidden px-2 py-1.5 align-middle">
                       <PriorityBadge score={row.priority_score ?? 0} />

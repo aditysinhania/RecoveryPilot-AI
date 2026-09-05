@@ -1,6 +1,8 @@
 import snapshotJson from "@/data/fitlifeSnapshot.json";
+import { fetchActionSummary } from "@/services/actions";
 import { getData, getPage } from "@/lib/api";
 import { formatPercent } from "@/lib/format";
+import type { ActionDashboardSummary } from "@/types/actions";
 import type {
   ActivityItem,
   AiLift,
@@ -136,6 +138,44 @@ function buildInsights(view: {
   ];
 }
 
+function normalizeOrchestrator(raw: ActionDashboardSummary | null): DashboardView["orchestrator"] | null {
+  if (!raw) {
+    return null;
+  }
+  return {
+    scheduled_actions_today: raw.scheduled_actions_today,
+    payment_links_sent: raw.payment_links_sent,
+    successful_retries: raw.successful_retries,
+    failed_deliveries: raw.failed_deliveries,
+    active_scheduler_queue: raw.active_scheduler_queue,
+    scheduler_queue: raw.scheduler_queue ?? {
+      scheduled: raw.active_scheduler_queue,
+      running: 0,
+      delayed: 0,
+      dead_letter: 0,
+    },
+  };
+}
+
+function snapshotOrchestrator(): DashboardView["orchestrator"] {
+  const waiting = SNAPSHOT.recovery_summary.waiting_retry + SNAPSHOT.recovery_summary.waiting_promise;
+  const scheduled = SNAPSHOT.recovery_summary.waiting_promise;
+  const delayed = SNAPSHOT.recovery_summary.waiting_retry;
+  return {
+    scheduled_actions_today: waiting,
+    payment_links_sent: SNAPSHOT.recovery_summary.waiting_retry,
+    successful_retries: Math.max(0, SNAPSHOT.recovery_summary.recovered_cases - 400),
+    failed_deliveries: SNAPSHOT.recovery_summary.stopped_cases,
+    active_scheduler_queue: waiting,
+    scheduler_queue: {
+      scheduled,
+      running: 0,
+      delayed,
+      dead_letter: 3,
+    },
+  };
+}
+
 function snapshotView(lastSyncedAt: string): DashboardView {
   const merchant: MerchantOption = {
     id: SNAPSHOT.merchant.list_id,
@@ -162,6 +202,7 @@ function snapshotView(lastSyncedAt: string): DashboardView {
       pending_recovery_value: SNAPSHOT.recovery_summary.pending_recovery_value ?? 0,
       cases_waiting: SNAPSHOT.recovery_summary.open_cases,
     },
+    orchestrator: snapshotOrchestrator(),
     funnel: SNAPSHOT.funnel,
     trend: SNAPSHOT.trend,
     failureReasons: SNAPSHOT.failure_reasons,
@@ -311,6 +352,7 @@ export interface LiveDashboardPayload {
   failures: PaymentListItem[];
   payments: PaymentListItem[];
   activity: AuditEventItem[];
+  orchestrator: DashboardView["orchestrator"] | null;
   live: boolean;
 }
 
@@ -324,6 +366,7 @@ export async function fetchLiveDashboard(merchantId: string): Promise<LiveDashbo
     getPage<PaymentListItem>(`/merchants/${merchantId}/failures?page=1&page_size=100`),
     getPage<PaymentListItem>(`/merchants/${merchantId}/payments?page=1&page_size=100`),
     getPage<AuditEventItem>("/audit/events?page=1&page_size=25"),
+    fetchActionSummary(merchantId),
   ]);
 
   const value = <T>(index: number): T | null => {
@@ -338,6 +381,7 @@ export async function fetchLiveDashboard(merchantId: string): Promise<LiveDashbo
   const failPage = value<{ data: PaymentListItem[] }>(4);
   const payPage = value<{ data: PaymentListItem[] }>(5);
   const auditPage = value<{ data: AuditEventItem[] }>(6);
+  const orchestrator = normalizeOrchestrator(value<ActionDashboardSummary>(7));
 
   const allRejected = settled.every((item) => item.status === "rejected");
   if (allRejected) {
@@ -361,6 +405,7 @@ export async function fetchLiveDashboard(merchantId: string): Promise<LiveDashbo
     failures: failPage?.data ?? [],
     payments: payPage?.data ?? [],
     activity: auditPage?.data ?? [],
+    orchestrator,
     live,
   };
 }
@@ -436,5 +481,6 @@ export function assembleDashboard(
     }),
     activity: live.activity.length > 0 ? mapActivity(live.activity) : SNAPSHOT.activity,
     topCustomers: live.queue.length > 0 ? mapQueue(live.queue) : SNAPSHOT.top_customers,
+    orchestrator: live.orchestrator ?? snapshotOrchestrator(),
   };
 }

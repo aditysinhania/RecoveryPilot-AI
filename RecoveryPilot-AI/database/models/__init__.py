@@ -26,6 +26,7 @@ from database.models.payment import Payment
 from database.models.promise_to_pay import PromiseToPay
 from database.models.recovery_action import RecoveryAction
 from database.models.recovery_case import RecoveryCase
+from database.models.scheduler_job import SchedulerJob
 from database.models.subscription import Subscription
 from database.models.webhook_event import WebhookEvent
 
@@ -53,6 +54,7 @@ __all__ = [
     "RecoveryActionType",
     "RecoveryCase",
     "RecoveryStatus",
+    "SchedulerJob",
     "Subscription",
     "SubscriptionStatus",
     "WebhookEvent",

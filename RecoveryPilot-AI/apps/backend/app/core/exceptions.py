@@ -75,6 +75,20 @@ class InvalidAuditFilterError(ApplicationException):
         super().__init__(message, code="invalid_audit_filter", status_code=400)
 
 
+class ActionNotFoundError(ApplicationException):
+    """No recovery_actions row matches the requested execution id."""
+
+    def __init__(self, message: str = "Action execution not found") -> None:
+        super().__init__(message, code="action_execution_not_found", status_code=404)
+
+
+class InvalidWebhookSignatureError(ApplicationException):
+    """Razorpay HMAC signature did not match RAZORPAY_WEBHOOK_SECRET."""
+
+    def __init__(self, message: str = "Invalid Razorpay webhook signature") -> None:
+        super().__init__(message, code="invalid_webhook_signature", status_code=401)
+
+
 class PolicyViolationError(ApplicationException):
     """A policy engine gate blocked an action. Placeholder until Phase 4B."""
 

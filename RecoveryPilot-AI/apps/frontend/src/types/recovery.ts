@@ -109,6 +109,7 @@ export interface QueueRow extends RecoveryQueueItem {
   planner_strategy: string;
   policy_status: string;
   last_updated: string;
+  action_chip: string;
 }
 
 export interface RecoveryQueueSummary {
@@ -317,6 +318,12 @@ export interface CaseDrawerModel {
     scheduled_time: string | null;
     executed_time: string | null;
     webhook_replay: boolean;
+    display_status: string;
+    payment_link: string | null;
+    retry_attempts: number;
+    delivery_status: string | null;
+    action_chip: string | null;
+    live: boolean;
   };
   explanations: {
     merchant: ExplanationBlock;

@@ -1,4 +1,5 @@
 import { getData, getPage } from "@/lib/api";
+import { fetchActionStatus, fetchActionSummary } from "@/services/actions";
 import {
   allowedChannelsFor,
   applyClientFilters,
@@ -153,6 +154,17 @@ export async function fetchRecoveryQueue(query: QueueQuery): Promise<{
       FETCH_MS,
     );
     const liveRows = applyClientFilters((envelope.data ?? []).map(toQueueRow), query.filters);
+    try {
+      const actions = await fetchActionSummary(query.merchantId);
+      for (const row of liveRows) {
+        const chip = actions.chips[row.recovery_case_id];
+        if (chip) {
+          row.action_chip = chip;
+        }
+      }
+    } catch {
+      /* snapshot chips already set by toQueueRow */
+    }
     if (liveRows.length === 0 && (envelope.total ?? 0) === 0) {
       throw new Error("empty-live-queue");
     }
@@ -279,6 +291,12 @@ function enrichCase(
       scheduled_time: detail.latest_action?.scheduled_time ?? null,
       executed_time: detail.latest_action?.executed_time ?? null,
       webhook_replay: webhookReplay(timeline, detail.latest_action),
+      display_status: detail.latest_action?.execution_status ?? "PENDING",
+      payment_link: detail.latest_action?.razorpay_payment_link ?? null,
+      retry_attempts: detail.latest_action?.retry_number ?? 0,
+      delivery_status: null,
+      action_chip: null,
+      live: source === "live",
     },
     explanations: buildExplanations({
       name: detail.customer.full_name,
@@ -322,7 +340,31 @@ export async function fetchRecoveryCase(recoveryCaseId: string): Promise<CaseDra
       getData<PolicyRow[]>(`/audit/cases/${recoveryCaseId}/policy`, FETCH_MS).catch(() => []),
     ]);
     const audit = await loadAudit(recoveryCaseId).catch(() => []);
-    return enrichCase(detail, timeline ?? [], audit, policyRows ?? [], "live");
+    const model = enrichCase(detail, timeline ?? [], audit, policyRows ?? [], "live");
+    try {
+      const status = await fetchActionStatus(recoveryCaseId);
+      if (status.latest) {
+        model.execution = {
+          ...model.execution,
+          status: status.latest.display_status,
+          type: status.latest.action_type,
+          idempotency_key: status.latest.idempotency_key,
+          execution_id: status.latest.execution_id,
+          scheduled_time: status.latest.scheduled_time ?? null,
+          executed_time: status.latest.executed_time ?? null,
+          display_status: status.latest.display_status,
+          payment_link: status.latest.payment_link ?? null,
+          retry_attempts: status.latest.retry_attempts,
+          delivery_status: status.latest.delivery_status ?? null,
+          action_chip: status.latest.action_chip,
+          live: true,
+          webhook_replay: status.latest.replayed || model.execution.webhook_replay,
+        };
+      }
+    } catch {
+      /* keep case-detail execution snapshot */
+    }
+    return model;
   } catch {
     const snapshot = snapshotCaseById(recoveryCaseId);
     if (!snapshot) {

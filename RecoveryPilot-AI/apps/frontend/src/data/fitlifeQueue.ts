@@ -797,6 +797,12 @@ export function buildSnapshotCase(row: QueueRow): CaseDrawerModel {
       scheduled_time: scheduled,
       executed_time: executed,
       webhook_replay: false,
+      display_status: caseDetail.latest_action?.execution_status ?? "PENDING",
+      payment_link: caseDetail.latest_action?.razorpay_payment_link ?? null,
+      retry_attempts: caseDetail.latest_action?.retry_number ?? 0,
+      delivery_status: null,
+      action_chip: row.action_chip,
+      live: false,
     },
     explanations: buildExplanations({
       name: row.customer_name,

@@ -49,6 +49,7 @@ export interface AuditEventView extends AuditEvent {
   severity: AuditSeverity;
   tone: AuditTone;
   duplicate: boolean;
+  webhook_replay: boolean;
 }
 
 export interface AuditPage {

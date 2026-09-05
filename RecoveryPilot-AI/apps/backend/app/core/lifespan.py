@@ -27,6 +27,7 @@ from app.core.middleware import register_middleware
 from app.core.responses import error_response
 from app.db.health import ping_database
 from app.db.session import dispose_engine, get_engine
+from app.core.scheduler_worker import start_scheduler, stop_scheduler
 from app.utils.json import redact_mapping
 from app.utils.request_id import get_correlation_id, get_request_id
 
@@ -62,7 +63,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         raise DatabaseUnavailableError("PostgreSQL connectivity check failed")
     else:
         logger.warning("app.startup.database.skipped")
+    start_scheduler(settings, database_ok=database_ok)
     yield
+    stop_scheduler()
     dispose_engine()
     logger.info("app.shutdown")
 

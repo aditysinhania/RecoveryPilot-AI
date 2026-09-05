@@ -138,6 +138,19 @@ export interface DashboardView {
     pending_recovery_value: number;
     cases_waiting: number;
   };
+  orchestrator: {
+    scheduled_actions_today: number;
+    payment_links_sent: number;
+    successful_retries: number;
+    failed_deliveries: number;
+    active_scheduler_queue: number;
+    scheduler_queue: {
+      scheduled: number;
+      running: number;
+      delayed: number;
+      dead_letter: number;
+    };
+  };
   funnel: FunnelStage[];
   trend: TrendPoint[];
   failureReasons: FailureReasonSlice[];

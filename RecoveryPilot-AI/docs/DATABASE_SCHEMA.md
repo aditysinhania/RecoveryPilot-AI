@@ -110,6 +110,15 @@ erDiagram
         bool signature_verified
         timestamptz processed_at
     }
+    scheduler_jobs {
+        uuid id PK
+        uuid execution_id UK
+        uuid recovery_case_id
+        timestamptz run_at
+        string reason
+        int attempt
+        string status
+    }
 ```
 
 ---
@@ -148,6 +157,7 @@ flowchart TD
 - **RESTRICT** on audit logs: the compliance trail cannot be wiped by deleting a case.
 - SQLAlchemy `back_populates` is set on every foreign key.
 - `webhook_events` has **no foreign keys**. It is an inbox; linking to payments happens later in application code after the event is processed.
+- `scheduler_jobs` has **no foreign keys**. `execution_id` and `recovery_case_id` are UUID columns only so existing recovery table relationships stay unchanged.
 
 ---
 
@@ -193,6 +203,10 @@ One live KPI row per merchant (`merchant_id` unique): paise at risk, recovered, 
 
 Razorpay webhook inbox. Unique `razorpay_event_id` makes provider retries idempotent. `payload` is the raw JSON body; `signature_verified` records whether the Razorpay signature checked out; `processed_at` is set when the event has been applied to domain tables. No FKs on purpose — do not couple ingestion to payment rows that may not exist yet.
 
+### scheduler_jobs
+
+Persisted action-scheduler due queue. Unique `execution_id` is the recovery action id without a ForeignKey. `status` is `pending` / `running` / `done` / `cancelled` / `dead_letter` (plain string, not a PostgreSQL enum). Delayed dashboard count = pending with `run_at` in the past. The lifespan worker creates this table if Alembic has not run yet (`CREATE TABLE IF NOT EXISTS` via SQLAlchemy `checkfirst`).
+
 ---
 
 ## Enums
@@ -234,6 +248,7 @@ Canonical `StrEnum` values live in `shared/src/shared/enums.py`. SQLAlchemy nati
 | audit_logs | created_at, event_type, policy_decision, (case, created), GIN(payload) | Replay, compliance export, payload search |
 | merchant_metrics | unique merchant_id | One snapshot per tenant |
 | webhook_events | unique razorpay_event_id, event_type, created_at, processed_at | Inbox dedupe and drain |
+| scheduler_jobs | unique execution_id, recovery_case_id, run_at, status, (status, run_at) | Due tick and queue KPIs |
 
 ---
 

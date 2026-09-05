@@ -39,10 +39,13 @@ class Settings(BaseSettings):
     db_max_overflow: int = POOL_MAX_OVERFLOW
     razorpay_key_id: str = "rzp_test_placeholder"
     razorpay_key_secret: str = "placeholder_secret"
+    razorpay_webhook_secret: str = "placeholder_webhook_secret"
     gemini_api_key: str = "placeholder_gemini_key"
     gemini_model: str = "gemini-2.5-flash"
     gemini_temperature: float = 0.2
     gemini_max_output_tokens: int = 512
+    action_scheduler_enabled: bool = True
+    action_scheduler_interval_seconds: int = 15
 
     @field_validator("app_env")
     @classmethod

@@ -7,6 +7,7 @@ import os
 os.environ["APP_ENV"] = "local"
 os.environ["API_VERSION"] = "v1"
 os.environ.setdefault("LOG_LEVEL", "WARNING")
+os.environ["ACTION_SCHEDULER_ENABLED"] = "false"
 
 from collections.abc import Generator
 

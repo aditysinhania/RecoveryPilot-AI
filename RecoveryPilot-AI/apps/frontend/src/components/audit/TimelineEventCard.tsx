@@ -65,10 +65,14 @@ export function TimelineEventCard({ event, selected, onSelect }: TimelineEventCa
       }}
       aria-pressed={selected}
       data-event-key={eventKey(event)}
-      className={`flex h-[70px] w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg border px-2.5 text-left transition-colors ${
+      className={`flex min-h-[70px] w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg border px-2.5 py-1.5 text-left transition-colors ${
         selected
           ? "border-info/50 bg-info-muted/40"
-          : "border-border bg-surface hover:border-border-strong hover:bg-surface-hover"
+          : event.webhook_replay
+            ? "border-info/40 bg-info-muted/20 hover:border-info/60"
+            : event.duplicate
+              ? "border-ai/40 bg-ai-muted/20 hover:border-ai/60"
+              : "border-border bg-surface hover:border-border-strong hover:bg-surface-hover"
       }`}
     >
       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tones.icon}`}>
@@ -82,6 +86,16 @@ export function TimelineEventCard({ event, selected, onSelect }: TimelineEventCa
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tones.badge}`}>
           {titleCase(event.display_actor)}
         </span>
+        {event.webhook_replay ? (
+          <span className="rounded-full bg-info-muted px-2 py-0.5 text-[10px] font-medium text-info">
+            Webhook replay
+          </span>
+        ) : null}
+        {event.duplicate ? (
+          <span className="rounded-full bg-ai-muted px-2 py-0.5 text-[10px] font-medium text-ai">
+            Duplicate prevented
+          </span>
+        ) : null}
         {event.recovery_case_id ? (
           <Link
             className="text-[10px] text-muted hover:text-info"

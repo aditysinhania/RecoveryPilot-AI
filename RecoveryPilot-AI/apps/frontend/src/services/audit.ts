@@ -102,6 +102,23 @@ function snapshotCatalog(): AuditEventView[] {
         );
       }
     }
+    if (item.recovery_status === "WAITING_RETRY") {
+      rows.push(
+        toAuditEventView({
+          event_id: `aud-${item.recovery_case_id.slice(0, 8)}-idem`,
+          recovery_case_id: item.recovery_case_id,
+          event_type: "ACTION_SKIPPED",
+          actor: "Recovery Executor",
+          actor_type: "SYSTEM",
+          timestamp: addMinutes(last?.timestamp ?? geminiAt, 0.2),
+          summary: "Duplicate execute ignored (idempotency key already used)",
+          request_id: `req-${item.recovery_case_id.slice(0, 8)}-idem`,
+          correlation_id: item.recovery_case_id,
+          policy_decision: null,
+          details: { duplicate: true, idempotency_key: true },
+        }),
+      );
+    }
   }
   return rows.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
 }

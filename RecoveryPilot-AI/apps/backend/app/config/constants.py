@@ -33,4 +33,6 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     {"name": "Recovery", "description": "Read-only recovery queue, case, timeline, and summary APIs."},
     {"name": "Audit", "description": "Compliance replay, event explorer, correlation and policy traces."},
     {"name": "Simulator", "description": "Batch simulator placeholders."},
+    {"name": "Actions", "description": "Recovery action orchestrator (Razorpay Sandbox, mock comms)."},
+    {"name": "Webhooks", "description": "Inbound Razorpay webhooks (signature verify, inbox, orchestrator dispatch)."},
 ]

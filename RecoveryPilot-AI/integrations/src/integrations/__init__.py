@@ -1,4 +1,4 @@
-"""Gemini generateContent adapter. Explanation copy only — never recovery decisions."""
+"""External API adapters. Gemini explanations and Razorpay Sandbox only."""
 
 from integrations.gemini.cache import ExplanationCache, get_explanation_cache
 from integrations.gemini.constants import (
@@ -14,6 +14,14 @@ from integrations.gemini.prompts import (
     customer_prompt,
     dashboard_prompt,
     merchant_prompt,
+)
+from integrations.razorpay import (
+    RazorpayError,
+    RazorpayLiveKeyError,
+    RazorpayPermanentError,
+    RazorpayResource,
+    RazorpaySandboxClient,
+    RazorpayTransientError,
 )
 
 __all__ = [
@@ -31,4 +39,10 @@ __all__ = [
     "get_explanation_cache",
     "merchant_prompt",
     "text_within",
+    "RazorpayError",
+    "RazorpayLiveKeyError",
+    "RazorpayPermanentError",
+    "RazorpayResource",
+    "RazorpaySandboxClient",
+    "RazorpayTransientError",
 ]

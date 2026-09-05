@@ -127,9 +127,33 @@ export function displayActorFor(event: AuditEvent): AuditEventView["display_acto
   return "system";
 }
 
-function isDuplicate(event: AuditEvent): boolean {
+function isWebhookReplay(event: AuditEvent): boolean {
   const details = event.details ?? {};
-  return Boolean(details.duplicate || details.replay || details.webhook_replay);
+  return Boolean(details.replay || details.webhook_replay);
+}
+
+function isDuplicatePrevented(event: AuditEvent): boolean {
+  const details = event.details ?? {};
+  return Boolean(details.duplicate);
+}
+
+/** True when the event is a webhook replay, a duplicate, or both. */
+export function isReplayOrDuplicate(event: AuditEvent): boolean {
+  return isWebhookReplay(event) || isDuplicatePrevented(event);
+}
+
+/** Map a raw audit DTO into explorer view fields. */
+export function toAuditEventView(event: AuditEvent): AuditEventView {
+  return {
+    ...event,
+    details: event.details ?? {},
+    display_actor: displayActorFor(event),
+    display_type: normalizeEventType(event.event_type),
+    severity: severityFor(event),
+    tone: toneFor(event),
+    duplicate: isDuplicatePrevented(event),
+    webhook_replay: isWebhookReplay(event),
+  };
 }
 
 /** Info / warning / error derived from type and policy. Not an API field. */
@@ -180,19 +204,6 @@ export function toneFor(event: AuditEvent): AuditTone {
     return "ai";
   }
   return "info";
-}
-
-/** Map a raw audit DTO into explorer view fields. */
-export function toAuditEventView(event: AuditEvent): AuditEventView {
-  return {
-    ...event,
-    details: event.details ?? {},
-    display_actor: displayActorFor(event),
-    display_type: normalizeEventType(event.event_type),
-    severity: severityFor(event),
-    tone: toneFor(event),
-    duplicate: isDuplicate(event),
-  };
 }
 
 function matchesActor(event: AuditEventView, actor: string): boolean {

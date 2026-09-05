@@ -7,7 +7,8 @@ export function useRecoveryCase(recoveryCaseId: string | null) {
     queryKey: ["recovery-case", recoveryCaseId],
     queryFn: () => fetchRecoveryCase(recoveryCaseId as string),
     enabled: Boolean(recoveryCaseId),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: recoveryCaseId ? 5_000 : false,
     retry: 0,
   });
 }

@@ -4,7 +4,7 @@ import Analytics from "@/pages/Analytics";
 import AuditTimelinePage from "@/pages/AuditTimeline";
 import Dashboard from "@/pages/Dashboard";
 import DashboardLayout from "@/pages/DashboardLayout";
-import ComingSoonPage from "@/pages/ComingSoonPage";
+import SimulatorLabPage from "@/pages/SimulatorLab";
 import RecoveryQueue from "@/pages/RecoveryQueue";
 
 const queryClient = new QueryClient({
@@ -26,15 +26,7 @@ export default function App() {
             <Route path="recovery-queue" element={<RecoveryQueue />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="audit" element={<AuditTimelinePage />} />
-            <Route
-              path="simulator"
-              element={
-                <ComingSoonPage
-                  title="Simulator"
-                  description="Batch evaluation stays in simulator/. This dashboard reads seed-42 FitLife outputs."
-                />
-              }
-            />
+            <Route path="simulator" element={<SimulatorLabPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

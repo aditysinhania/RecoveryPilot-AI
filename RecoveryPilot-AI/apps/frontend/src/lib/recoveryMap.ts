@@ -250,15 +250,40 @@ export function priorityBand(score: number | null | undefined): "HIGH" | "MEDIUM
   return "LOW";
 }
 
+/** Queue action chip from recovery status + planner strategy. Live chips overlay this. */
+export function actionChipFor(status: string, strategy: string): string {
+  if (status === "RECOVERED") {
+    return "Delivered";
+  }
+  if (status === "STOPPED" || status === "CLOSED" || status === "ESCALATED") {
+    return "Failed";
+  }
+  if (status === "WAITING_PROMISE") {
+    return "Scheduled";
+  }
+  if (status === "WAITING_RETRY") {
+    if (strategy === "SEND_PAYMENT_LINK" || strategy === "SWITCH_PAYMENT_METHOD" || strategy === "REQUEST_NEW_MANDATE") {
+      return "Link Sent";
+    }
+    if (strategy === "RETRY_PAYMENT" || strategy === "RETRY_SILENTLY") {
+      return "Retrying";
+    }
+    return "Scheduled";
+  }
+  return "Scheduled";
+}
+
 /** Enrich a queue DTO with display columns the API does not return. */
 export function toQueueRow(item: RecoveryQueueItem): QueueRow {
   const reason = item.diagnosed_reason ?? item.failure_reason ?? "UNKNOWN";
+  const planner_strategy = plannerStrategyFor(reason, item.recovery_status);
   return {
     ...item,
     plan_name: planNameFor(item.amount),
-    planner_strategy: plannerStrategyFor(reason, item.recovery_status),
+    planner_strategy,
     policy_status: policyStatusFor(item.recovery_status),
     last_updated: item.recovery_started_at ?? item.failed_at,
+    action_chip: actionChipFor(item.recovery_status, planner_strategy),
   };
 }
 
